@@ -1,0 +1,118 @@
+import org.gradle.internal.os.OperatingSystem
+
+plugins {
+	// Apply the java-library plugin to add support for Java Library
+	id 'java-library'
+}
+
+apply plugin: 'eclipse'
+
+group 'naitsirc98'
+version '0.1-SNAPSHOT'
+sourceCompatibility = 1.8
+
+project.ext.lwjglVersion = "3.2.2"
+project.ext.jomlVersion = "1.9.14"
+
+switch (OperatingSystem.current()) {
+	case OperatingSystem.LINUX:
+		project.ext.lwjglNatives = "natives-linux"
+		break
+	case OperatingSystem.MAC_OS:
+		project.ext.lwjglNatives = "natives-macos"
+		break
+	case OperatingSystem.WINDOWS:
+		project.ext.lwjglNatives = "natives-windows"
+		break
+}
+
+sourceSets {
+	main {
+		java {
+			srcDirs = ["src"]
+		}
+	}
+}
+
+repositories {
+	mavenCentral()
+	jcenter()
+}
+
+dependencies {
+	compile 'ch.qos.logback:logback-classic:1.2.3'
+	compile 'ch.qos.logback:logback-core:1.2.3'
+	compile 'org.slf4j:slf4j-api:1.7.25'
+
+	implementation "org.lwjgl:lwjgl:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-assimp:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-bgfx:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-cuda:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-egl:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-glfw:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-jawt:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-jemalloc:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-libdivide:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-llvm:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-lmdb:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-lz4:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-meow:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-nanovg:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-nfd:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-nuklear:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-odbc:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-openal:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-opencl:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-opengl:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-opengles:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-openvr:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-opus:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-ovr:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-par:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-remotery:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-rpmalloc:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-sse:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-stb:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-tinyexr:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-tinyfd:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-tootle:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-vma:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-vulkan:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-xxhash:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-yoga:$lwjglVersion"
+	implementation "org.lwjgl:lwjgl-zstd:$lwjglVersion"
+	runtimeOnly "org.lwjgl:lwjgl:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-assimp:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-bgfx:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-glfw:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-jemalloc:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-libdivide:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-llvm:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-lmdb:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-lz4:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-meow:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-nanovg:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-nfd:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-nuklear:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-openal:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-opengl:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-opengles:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-openvr:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-opus:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-ovr:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-par:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-remotery:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-rpmalloc:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-sse:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-stb:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-tinyexr:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-tinyfd:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-tootle:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-vma:$lwjglVersion:$lwjglNatives"
+	if (lwjglNatives == "natives-macos") runtimeOnly "org.lwjgl:lwjgl-vulkan:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-xxhash:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-yoga:$lwjglVersion:$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-zstd:$lwjglVersion:$lwjglNatives"
+	implementation "org.joml:joml:${jomlVersion}"
+	
+}
