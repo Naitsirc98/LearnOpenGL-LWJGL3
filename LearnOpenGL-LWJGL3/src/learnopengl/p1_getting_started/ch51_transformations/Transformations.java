@@ -1,7 +1,8 @@
-package learnopengl.p1_getting_started.ch42_textures_combined;
+package learnopengl.p1_getting_started.ch51_transformations;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -9,20 +10,21 @@ import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.logging.Logger;
 
+import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
-import learnopengl.p1_getting_started.ch44_textures_exercise3.TexturesExercise3;
 import learnopengl.util.Shader1;
 
-public class TexturesCombined {
-
+public class Transformations {
+	
 	private static Logger logger = Logger.getAnonymousLogger();
 
 	// Callbacks
@@ -38,18 +40,17 @@ public class TexturesCombined {
 
 
 	private static final float[] VERTICES = {
-			// positions          // colors           // texture coords
-			0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-			0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-			-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-			-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+	        // positions          // texture coords
+	         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right
+	         0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right
+	        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, // bottom left
+	        -0.5f,  0.5f, 0.0f,   0.0f, 1.0f  // top left 
 	}; 
 
 	private static final int[] INDICES = {
 			0, 1, 3, // first triangle
 			1, 2, 3  // second triangle
 	};
-
 
 	public static void main(String[] args) {
 
@@ -86,28 +87,28 @@ public class TexturesCombined {
 		}
 
 		// Build and compile our shader program
-		final String dir = TexturesCombined.class.getResource(".").getFile();
-		Shader1 ourShader = new Shader1(dir+"ch42_texture.vs", dir+"ch42_texture.fs");
+		final String dir = Transformations.class.getResource(".").getFile();
+		Shader1 ourShader = new Shader1(dir+"ch51_transform.vs", dir+"ch51_transform.fs");
 
 		// Set up vertex data, the Vertex Buffer Object (VBO) and the Vertex Array Object (VAO)
 		final int vao = glGenVertexArrays();
 		final int vbo = glGenBuffers();
 		final int ebo = glGenBuffers();
 		setUpVertexData(vao, vbo, ebo);
-		
+
 		// Load Textures
-		final int texture1 = loadTexture("resources/textures/container.jpg");
-		final int texture2 = loadTexture("resources/textures/awesomeface.png");
-		
+		// Note that we set the container wrapping method to GL_CLAMP_TO_EDGE
+		// Set texture filtering to nearest neighbor to clearly see the texels/pixels
+		final int texture1 = loadTexture("resources/textures/container.jpg", true, GL_REPEAT, GL_LINEAR); 
+		final int texture2 = loadTexture("resources/textures/awesomeface.png", true, GL_REPEAT, GL_LINEAR);
+
 		ourShader.use();
-		
-	    // Tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
-	    ourShader.use(); // Don't forget to activate/use the shader before setting uniforms!
-	    // Either set it manually like so:
-	    glUniform1i(glGetUniformLocation(ourShader.id, "texture1"), 0);
-	    // Or set it via the texture class
-	    ourShader.setInt("texture2", 1);
-		
+
+		// Tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+		ourShader.use(); // Don't forget to activate/use the shader before setting uniforms!
+		ourShader.setInt("texture1", 0);
+		ourShader.setInt("texture2", 1);
+
 		// Render loop
 		while(!glfwWindowShouldClose(window)) {
 
@@ -117,14 +118,30 @@ public class TexturesCombined {
 			// Clear the screen
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
-			
+
 			// Bind textures
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, texture1);
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, texture2);
 
+			// Create Transformations
+			Matrix4f transform = new Matrix4f(); // Identity matrix
+			transform.translate(0.5f, -0.5f, 0.0f);
+			transform.rotate((float)glfwGetTime(), 0.0f, 0.0f, 1.0f);
+			
+			// Get matrix's uniform location and set matrix
 			ourShader.use();
+			final int transformLocation = glGetUniformLocation(ourShader.id, "transform");
+			
+			try(MemoryStack stack = MemoryStack.stackPush()) {
+				FloatBuffer transformData = stack.mallocFloat(16);
+				// Since LWJGL needs the data in array/Buffer form, we have to
+				// fill a Buffer with the matrix data
+				transform.get(transformData);
+				glUniformMatrix4fv(transformLocation, false, transformData);
+			}
+			
 			glBindVertexArray(vao);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -154,16 +171,12 @@ public class TexturesCombined {
 		glBufferData(GL_ARRAY_BUFFER, VERTICES, GL_STATIC_DRAW);
 
 		// Position
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 8 * Float.BYTES, 0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * Float.BYTES, 0);
 		glEnableVertexAttribArray(0);
 
-		// Color
-		glVertexAttribPointer(1, 3, GL_FLOAT, false, 8 * Float.BYTES, 3 * Float.BYTES);
-		glEnableVertexAttribArray(1);
-
 		// Texture coordinates
-		glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * Float.BYTES, 6 * Float.BYTES);
-		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
+		glEnableVertexAttribArray(1);
 
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -180,31 +193,31 @@ public class TexturesCombined {
 		glBindVertexArray(0); 
 	}
 
-	private static int loadTexture(String path) {
+	private static int loadTexture(String path, boolean flipY, int wrapping, int filtering) {
 
 		final int texture = glGenTextures();
 
 		glBindTexture(GL_TEXTURE_2D, texture); // All upcoming GL_TEXTURE_2D operations now have effect on this texture object
 		// Set the texture wrapping parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // Set texture wrapping to GL_REPEAT (default wrapping method)
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping); // Set texture wrapping to GL_REPEAT (default wrapping method)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
 		// Set texture filtering parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filtering);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filtering);
+
 		// Load image, create texture and generate mipmaps
 		try(MemoryStack stack = MemoryStack.stackPush()) {
-			
+
 			IntBuffer width = stack.ints(0);
 			IntBuffer height = stack.ints(0);
 			IntBuffer nrChannels = stack.ints(0);
-			
-			stbi_set_flip_vertically_on_load(true); // Tell stb_image.h to flip loaded texture's on the y-axis.
-			
+
+			stbi_set_flip_vertically_on_load(flipY); // Tell stb_image.h whether to flip loaded texture's on the y-axis or not.
+
 			ByteBuffer data = stbi_load(path, width, height, nrChannels, 0);
-			
+
 			if(data != null) {
-				
+
 				int format = 0;
 				
 				switch(nrChannels.get(0)) {
@@ -224,16 +237,16 @@ public class TexturesCombined {
 				default:
 					logger.severe("Unexpected number of channels");
 				}
-				
+
 				glTexImage2D(GL_TEXTURE_2D, 0, format, width.get(0), height.get(0), 0, format, GL_UNSIGNED_BYTE, data);
 				glGenerateMipmap(GL_TEXTURE_2D);
-				
+
 			} else {
 				logger.severe("Failed to load texture: " + path);
 			}
-			
+
 			stbi_image_free(data);
-			
+
 		}
 
 		return texture;
@@ -244,7 +257,8 @@ public class TexturesCombined {
 		// Close window when ESC key is pressed
 		if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 			glfwSetWindowShouldClose(window, true);
-		}
+			
+		} 
 
 	}
 

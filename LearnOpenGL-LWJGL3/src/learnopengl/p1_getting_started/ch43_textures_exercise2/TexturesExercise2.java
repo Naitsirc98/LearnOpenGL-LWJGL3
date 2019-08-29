@@ -206,7 +206,25 @@ public class TexturesExercise2 {
 			
 			if(data != null) {
 				
-				final int format = path.endsWith(".png") ? GL_RGBA : GL_RGB;
+				int format = 0;
+				
+				switch(nrChannels.get(0)) {
+				
+				case 1:
+					format = GL_RED;
+					break;
+				case 2:
+					format = GL_RG;
+					break;
+				case 3:
+					format = GL_RGB;
+					break;
+				case 4:
+					format = GL_RGBA;
+					break;
+				default:
+					logger.severe("Unexpected number of channels");
+				}
 				
 				glTexImage2D(GL_TEXTURE_2D, 0, format, width.get(0), height.get(0), 0, format, GL_UNSIGNED_BYTE, data);
 				glGenerateMipmap(GL_TEXTURE_2D);
