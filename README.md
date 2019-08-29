@@ -1,2 +1,3 @@
 # LearnOpenGL-LWJGL3
-OpenGL tutorial by Joey De Vries ported to LWJGL3
+<a>OpenGL tutorial by Joey De Vries</a> ported to LWJGL3
+
