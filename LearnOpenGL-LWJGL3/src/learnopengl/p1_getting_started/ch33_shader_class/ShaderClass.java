@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.Platform;
 
+import learnopengl.p1_getting_started.ch44_textures_exercise3.TexturesExercise3;
 import learnopengl.util.Shader1;
 
 public class ShaderClass {
@@ -75,7 +76,7 @@ public class ShaderClass {
 		}
 
 		// Build and compile our shader program
-		final String dir = "src/learnopengl/p1_getting_started/ch33_shader_class/";
+		final String dir = ShaderClass.class.getResource(".").getFile();
 		Shader1 ourShader = new Shader1(dir+"ch33_shader.vs", dir+"ch33_shader.fs"); // You can name your shader files however you like
 		
 		// Set up vertex data, the Vertex Buffer Object (VBO) and the Vertex Array Object (VAO)

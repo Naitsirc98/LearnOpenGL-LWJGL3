@@ -1,4 +1,4 @@
-package learnopengl.p1_getting_started.ch41_textures;
+package learnopengl.p1_getting_started.ch45_textures_exercise4;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -18,10 +18,9 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
-import learnopengl.p1_getting_started.ch44_textures_exercise3.TexturesExercise3;
 import learnopengl.util.Shader1;
 
-public class Textures {
+public class TexturesExercise4 {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -49,6 +48,10 @@ public class Textures {
 			0, 1, 3, // first triangle
 			1, 2, 3  // second triangle
 	};
+
+
+	// Stores how much we are seeing of either texture
+	private static float mixValue = 0.2f;
 
 
 	public static void main(String[] args) {
@@ -86,18 +89,30 @@ public class Textures {
 		}
 
 		// Build and compile our shader program
-		final String dir = Textures.class.getResource(".").getFile();
-		Shader1 ourShader = new Shader1(dir+"ch41_texture.vs", dir+"ch41_texture.fs");
+		final String dir = TexturesExercise4.class.getResource(".").getFile();
+		Shader1 ourShader = new Shader1(dir+"ch44_texture.vs", dir+"ch44_texture.fs");
 
 		// Set up vertex data, the Vertex Buffer Object (VBO) and the Vertex Array Object (VAO)
 		final int vao = glGenVertexArrays();
 		final int vbo = glGenBuffers();
 		final int ebo = glGenBuffers();
 		setUpVertexData(vao, vbo, ebo);
-		
-		// Load Texture
-		final int texture = loadTexture("resources/textures/container.jpg");
-		
+
+		// Load Textures
+		// Note that we set the container wrapping method to GL_CLAMP_TO_EDGE
+		// Set texture filtering to nearest neighbor to clearly see the texels/pixels
+		final int texture1 = loadTexture("resources/textures/container.jpg", true, GL_REPEAT, GL_LINEAR); 
+		final int texture2 = loadTexture("resources/textures/awesomeface.png", true, GL_REPEAT, GL_LINEAR);
+
+		ourShader.use();
+
+		// Tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+		ourShader.use(); // Don't forget to activate/use the shader before setting uniforms!
+		// Either set it manually like so:
+		glUniform1i(glGetUniformLocation(ourShader.id, "texture1"), 0);
+		// Or set it via the texture class
+		ourShader.setInt("texture2", 1);
+
 		// Render loop
 		while(!glfwWindowShouldClose(window)) {
 
@@ -107,11 +122,15 @@ public class Textures {
 			// Clear the screen
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
-			
-			// Bind texture
-			glBindTexture(GL_TEXTURE_2D, texture);
+
+			// Bind textures
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, texture1);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, texture2);
 
 			ourShader.use();
+			ourShader.setFloat("mixValue", mixValue);
 			glBindVertexArray(vao);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -124,7 +143,8 @@ public class Textures {
 		// Deallocate all resources when no longer necessary
 		glDeleteVertexArrays(vao);
 		glDeleteBuffers(vbo);
-		glDeleteTextures(texture);
+		glDeleteTextures(texture1);
+		glDeleteTextures(texture2);
 		ourShader.delete();
 
 		// Clear all allocated resources by GLFW
@@ -166,38 +186,42 @@ public class Textures {
 		glBindVertexArray(0); 
 	}
 
-	private static int loadTexture(String path) {
+	private static int loadTexture(String path, boolean flipY, int wrapping, int filtering) {
 
 		final int texture = glGenTextures();
 
 		glBindTexture(GL_TEXTURE_2D, texture); // All upcoming GL_TEXTURE_2D operations now have effect on this texture object
 		// Set the texture wrapping parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // Set texture wrapping to GL_REPEAT (default wrapping method)
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping); // Set texture wrapping to GL_REPEAT (default wrapping method)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
 		// Set texture filtering parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filtering);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filtering);
+
 		// Load image, create texture and generate mipmaps
 		try(MemoryStack stack = MemoryStack.stackPush()) {
-			
+
 			IntBuffer width = stack.ints(0);
 			IntBuffer height = stack.ints(0);
 			IntBuffer nrChannels = stack.ints(0);
-			
+
+			stbi_set_flip_vertically_on_load(flipY); // Tell stb_image.h whether to flip loaded texture's on the y-axis or not.
+
 			ByteBuffer data = stbi_load(path, width, height, nrChannels, 0);
-			
+
 			if(data != null) {
-				
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width.get(0), height.get(0), 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+				final int format = path.endsWith(".png") ? GL_RGBA : GL_RGB;
+
+				glTexImage2D(GL_TEXTURE_2D, 0, format, width.get(0), height.get(0), 0, format, GL_UNSIGNED_BYTE, data);
 				glGenerateMipmap(GL_TEXTURE_2D);
-				
+
 			} else {
 				logger.severe("Failed to load texture: " + path);
 			}
-			
+
 			stbi_image_free(data);
-			
+
 		}
 
 		return texture;
@@ -208,6 +232,17 @@ public class Textures {
 		// Close window when ESC key is pressed
 		if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 			glfwSetWindowShouldClose(window, true);
+			
+		} else if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+			mixValue += 0.001f; // change this value accordingly (might be too slow or too fast based on system hardware)
+			if(mixValue >= 1.0f) {
+				mixValue = 1.0f;				
+			}
+		} else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+			mixValue -= 0.001f; // change this value accordingly (might be too slow or too fast based on system hardware)
+			if (mixValue <= 0.0f) {
+				mixValue = 0.0f;				
+			}
 		}
 
 	}

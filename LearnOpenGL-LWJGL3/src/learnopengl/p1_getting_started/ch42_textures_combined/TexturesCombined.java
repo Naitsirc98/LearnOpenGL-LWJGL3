@@ -1,4 +1,4 @@
-package learnopengl.p1_getting_started.ch41_textures;
+package learnopengl.p1_getting_started.ch42_textures_combined;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -21,7 +21,7 @@ import org.lwjgl.system.Platform;
 import learnopengl.p1_getting_started.ch44_textures_exercise3.TexturesExercise3;
 import learnopengl.util.Shader1;
 
-public class Textures {
+public class TexturesCombined {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -86,8 +86,8 @@ public class Textures {
 		}
 
 		// Build and compile our shader program
-		final String dir = Textures.class.getResource(".").getFile();
-		Shader1 ourShader = new Shader1(dir+"ch41_texture.vs", dir+"ch41_texture.fs");
+		final String dir = TexturesCombined.class.getResource(".").getFile();
+		Shader1 ourShader = new Shader1(dir+"ch42_texture.vs", dir+"ch42_texture.fs");
 
 		// Set up vertex data, the Vertex Buffer Object (VBO) and the Vertex Array Object (VAO)
 		final int vao = glGenVertexArrays();
@@ -95,8 +95,18 @@ public class Textures {
 		final int ebo = glGenBuffers();
 		setUpVertexData(vao, vbo, ebo);
 		
-		// Load Texture
-		final int texture = loadTexture("resources/textures/container.jpg");
+		// Load Textures
+		final int texture1 = loadTexture("resources/textures/container.jpg");
+		final int texture2 = loadTexture("resources/textures/awesomeface.png");
+		
+		ourShader.use();
+		
+	    // Tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+	    ourShader.use(); // Don't forget to activate/use the shader before setting uniforms!
+	    // Either set it manually like so:
+	    glUniform1i(glGetUniformLocation(ourShader.id, "texture1"), 0);
+	    // Or set it via the texture class
+	    ourShader.setInt("texture2", 1);
 		
 		// Render loop
 		while(!glfwWindowShouldClose(window)) {
@@ -108,8 +118,11 @@ public class Textures {
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
 			
-			// Bind texture
-			glBindTexture(GL_TEXTURE_2D, texture);
+			// Bind textures
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, texture1);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, texture2);
 
 			ourShader.use();
 			glBindVertexArray(vao);
@@ -124,7 +137,8 @@ public class Textures {
 		// Deallocate all resources when no longer necessary
 		glDeleteVertexArrays(vao);
 		glDeleteBuffers(vbo);
-		glDeleteTextures(texture);
+		glDeleteTextures(texture1);
+		glDeleteTextures(texture2);
 		ourShader.delete();
 
 		// Clear all allocated resources by GLFW
@@ -185,11 +199,15 @@ public class Textures {
 			IntBuffer height = stack.ints(0);
 			IntBuffer nrChannels = stack.ints(0);
 			
+			stbi_set_flip_vertically_on_load(true); // Tell stb_image.h to flip loaded texture's on the y-axis.
+			
 			ByteBuffer data = stbi_load(path, width, height, nrChannels, 0);
 			
 			if(data != null) {
 				
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width.get(0), height.get(0), 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+				final int format = path.endsWith(".png") ? GL_RGBA : GL_RGB;
+				
+				glTexImage2D(GL_TEXTURE_2D, 0, format, width.get(0), height.get(0), 0, format, GL_UNSIGNED_BYTE, data);
 				glGenerateMipmap(GL_TEXTURE_2D);
 				
 			} else {
