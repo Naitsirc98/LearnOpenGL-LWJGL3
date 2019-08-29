@@ -1,4 +1,4 @@
-package getting_started.hello_triangle_exercise2;
+package learnopengl.p1_getting_started.ch21_hello_triangle;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -16,7 +16,7 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
-public class HelloTriangleExercise2 {
+public class HelloTriangle {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -47,19 +47,11 @@ public class HelloTriangleExercise2 {
 			+ "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
 			+ "}";
 
-	// First triangle
-	private static final float[] VERTICES1 = { 
-			-0.9f, -0.5f, 0.0f,  // left 
-			-0.0f, -0.5f, 0.0f,  // right
-			-0.45f, 0.5f, 0.0f,  // top 
+	private static final float[] VERTICES = {
+			-0.5f, -0.5f, 0.0f, // left  
+			0.5f, -0.5f, 0.0f, // right 
+			0.0f,  0.5f, 0.0f  // top   
 	}; 
-
-	// Second triangle
-	private static final float[] VERTICES2 = {
-			0.0f, -0.5f, 0.0f,  // left
-			0.9f, -0.5f, 0.0f,  // right
-			0.45f, 0.5f, 0.0f   // top 	
-	};
 
 
 	public static void main(String[] args) {
@@ -106,16 +98,9 @@ public class HelloTriangleExercise2 {
 		glDeleteShader(fragment);
 
 		// Set up vertex data, the Vertex Buffer Object (VBO) and the Vertex Array Object (VAO)
-		
-		// First triangle
-		final int vao1 = glGenVertexArrays();
-		final int vbo1 = glGenBuffers();
-		setUpVertexData(vao1, vbo1, VERTICES1);
-
-		// Second triangle
-		final int vao2 = glGenVertexArrays();
-		final int vbo2 = glGenBuffers();
-		setUpVertexData(vao2, vbo2, VERTICES2);
+		final int vao = glGenVertexArrays();
+		final int vbo = glGenBuffers();
+		setUpVertexData(vao, vbo);
 
 		// Uncomment this call to draw in wireframe polygons
 		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -131,13 +116,12 @@ public class HelloTriangleExercise2 {
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
 
+			// Draw triangle
 			glUseProgram(shaderProgram);
-			// Draw first triangle using the data from the first VAO
-			glBindVertexArray(vao1);
+			// Seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+			glBindVertexArray(vao);
 			glDrawArrays(GL_TRIANGLES, 0, 3);
-			// Then we draw the second triangle using the data from the second VAO
-			glBindVertexArray(vao2);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
+			// glBindVertexArray(0); // No need to unbind it every time
 
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
@@ -146,10 +130,8 @@ public class HelloTriangleExercise2 {
 		}
 
 		// Deallocate all resources when no longer necessary
-		glDeleteVertexArrays(vao1);
-		glDeleteBuffers(vbo1);
-		glDeleteVertexArrays(vao2);
-		glDeleteBuffers(vbo2);
+		glDeleteVertexArrays(vao);
+		glDeleteBuffers(vbo);
 		glDeleteProgram(shaderProgram);
 
 		// Clear all allocated resources by GLFW
@@ -157,9 +139,8 @@ public class HelloTriangleExercise2 {
 
 	}
 
-
 	private static int createShaderProgram(int vertexShader, int fragmentShader) {
-
+		
 		final int program = glCreateProgram();
 
 		glAttachShader(program, vertexShader);
@@ -183,7 +164,7 @@ public class HelloTriangleExercise2 {
 			}
 
 		}
-		
+
 		return program;
 	}
 
@@ -218,13 +199,13 @@ public class HelloTriangleExercise2 {
 
 		return shader;
 	}
-
-	private static void setUpVertexData(int vao, int vbo, float[] data) {
+	
+	private static void setUpVertexData(int vao, int vbo) {
 		// Bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 		glBindVertexArray(vao);
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, data, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, VERTICES, GL_STATIC_DRAW);
 
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * Float.BYTES, NULL);
 		glEnableVertexAttribArray(0);
@@ -236,6 +217,7 @@ public class HelloTriangleExercise2 {
 		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
 		glBindVertexArray(0); 
 	}
+
 
 	private static void processInput(long window) {
 		// Close window when ESC key is pressed

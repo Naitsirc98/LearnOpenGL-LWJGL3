@@ -1,4 +1,4 @@
-package getting_started.hello_window_clear;
+package learnopengl.p1_getting_started.ch11_hello_window;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -11,7 +11,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.Platform;
 
-public class HelloWindowClear {
+public class HelloWindow {
 	
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -66,10 +66,6 @@ public class HelloWindowClear {
 	    	
 	    	// Input
 	    	processInput(window);
-	    	
-	    	// Clear the screen
-	    	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-	    	glClear(GL_COLOR_BUFFER_BIT);
 	    	
 	    	// Swap buffers and poll IO events (key/mouse events)
 	    	glfwSwapBuffers(window);

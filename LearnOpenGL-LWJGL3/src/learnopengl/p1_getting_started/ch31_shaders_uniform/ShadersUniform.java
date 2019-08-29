@@ -1,4 +1,4 @@
-package getting_started.hello_triangle_indexed;
+package learnopengl.p1_getting_started.ch31_shaders_uniform;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -16,7 +16,7 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
-public class HelloTriangleIndexed {
+public class ShadersUniform {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -42,22 +42,17 @@ public class HelloTriangleIndexed {
 	// Fragment shader
 	private static final String FRAG_SRC = "#version 330 core\n"
 			+ "out vec4 FragColor;\n"
+			+ "uniform vec4 ourColor;\n"
 			+ "void main()\n"
 			+ "{\n"
-			+ "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+			+ "    FragColor = ourColor;\n"
 			+ "}";
 
 	private static final float[] VERTICES = {
-	         0.5f,  0.5f, 0.0f,  // top right
-	         0.5f, -0.5f, 0.0f,  // bottom right
-	        -0.5f, -0.5f, 0.0f,  // bottom left
-	        -0.5f,  0.5f, 0.0f   // top left 
+			-0.5f, -0.5f, 0.0f, // left  
+			0.5f, -0.5f, 0.0f, // right 
+			0.0f,  0.5f, 0.0f  // top   
 	}; 
-	
-	private static final int[] INDICES = { // Note that we start from 0!
-	        0, 1, 3,  // first Triangle
-	        1, 2, 3   // second Triangle
-	};
 
 
 	public static void main(String[] args) {
@@ -93,7 +88,7 @@ public class HelloTriangleIndexed {
 			glfwTerminate();
 			return;
 		}
-		
+
 		// Create shaders
 		final int vertex = createShader(GL_VERTEX_SHADER, VERT_SRC);
 		final int fragment = createShader(GL_FRAGMENT_SHADER, FRAG_SRC);
@@ -103,16 +98,15 @@ public class HelloTriangleIndexed {
 		glDeleteShader(vertex);
 		glDeleteShader(fragment);
 
-		// Set up vertex data, the Vertex Buffer Object (VBO), the Element Array Buffer, aka Index Buffer (EBO)
-		// and the Vertex Array Object (VAO)
+		// Set up vertex data, the Vertex Buffer Object (VBO) and the Vertex Array Object (VAO)
 		final int vao = glGenVertexArrays();
 		final int vbo = glGenBuffers();
-		final int ebo = glGenBuffers();
-		setUpVertexData(vao, vbo, ebo);
-	    
-	    // Uncomment this call to draw in wireframe polygons
-	    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	    
+		setUpVertexData(vao, vbo);
+
+	    // Bind the VAO (it was already bound, but just to demonstrate): seeing as we only have a single VAO we can 
+	    // just bind it beforehand before rendering the respective triangle; this is another approach.
+	    glBindVertexArray(vao);
+
 
 		// Render loop
 		while(!glfwWindowShouldClose(window)) {
@@ -123,21 +117,25 @@ public class HelloTriangleIndexed {
 			// Clear the screen
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
-			
+
 			// Draw triangle
 			glUseProgram(shaderProgram);
-			// Seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-			glBindVertexArray(vao);
-			// glDrawArrays(GL_TRIANGLES, 0, 3);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			// glBindVertexArray(0); // No need to unbind it every time
 			
+			// Update shader uniform
+			final float timeValue = (float)glfwGetTime();
+			final float greenValue = (float)Math.sin(timeValue) / 2.0f + 0.5f;
+			final int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+			glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+
+			glDrawArrays(GL_TRIANGLES, 0, 3);
+			// glBindVertexArray(0); // No need to unbind it every time
+
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 
 		}
-		
+
 		// Deallocate all resources when no longer necessary
 		glDeleteVertexArrays(vao);
 		glDeleteBuffers(vbo);
@@ -148,9 +146,8 @@ public class HelloTriangleIndexed {
 
 	}
 
-
 	private static int createShaderProgram(int vertexShader, int fragmentShader) {
-
+		
 		final int program = glCreateProgram();
 
 		glAttachShader(program, vertexShader);
@@ -210,31 +207,22 @@ public class HelloTriangleIndexed {
 		return shader;
 	}
 	
-	private static void setUpVertexData(int vao, int vbo, int ebo) {
-		 // Bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+	private static void setUpVertexData(int vao, int vbo) {
+		// Bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 		glBindVertexArray(vao);
-		
-		// Configure VBO
+
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, VERTICES, GL_STATIC_DRAW);
 
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * Float.BYTES, NULL);
 		glEnableVertexAttribArray(0);
-		
-		// Configure EBO
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, INDICES, GL_STATIC_DRAW);
-		
-		
-	    // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-	    glBindBuffer(GL_ARRAY_BUFFER, 0); 
-	    
-	    // Remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-	    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-	    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-	    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-	    glBindVertexArray(0); 
+		// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+		glBindBuffer(GL_ARRAY_BUFFER, 0); 
+
+		// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+		glBindVertexArray(0); 
 	}
 
 
@@ -245,6 +233,5 @@ public class HelloTriangleIndexed {
 		}
 
 	}
-
 
 }

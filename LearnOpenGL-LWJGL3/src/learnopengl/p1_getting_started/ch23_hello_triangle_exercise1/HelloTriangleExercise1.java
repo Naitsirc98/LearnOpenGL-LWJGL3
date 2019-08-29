@@ -1,4 +1,4 @@
-package getting_started.hello_triangle_exercise3;
+package learnopengl.p1_getting_started.ch23_hello_triangle_exercise1;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -16,7 +16,8 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
-public class HelloTriangleExercise3 {
+public class HelloTriangleExercise1 {
+
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -39,35 +40,25 @@ public class HelloTriangleExercise3 {
 			+ "    gl_Position = vec4(aPos, 1.0f);\n"
 			+ "}";
 
-	// Fragment shader 1
-	private static final String FRAG_SRC1 = "#version 330 core\n"
+	// Fragment shader
+	private static final String FRAG_SRC = "#version 330 core\n"
 			+ "out vec4 FragColor;\n"
 			+ "void main()\n"
 			+ "{\n"
 			+ "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
 			+ "}";
-	
-	// Fragment shader 2
-	private static final String FRAG_SRC2 = "#version 330 core\n"
-			+ "out vec4 FragColor;\n"
-			+ "void main()\n"
-			+ "{\n"
-			+ "    FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
-			+ "}";
 
-	// First triangle
-	private static final float[] VERTICES1 = { 
+	// Add a new set of vertices to form a second triangle (a total of 6 vertices); the vertex attribute configuration remains the same (still one 3-float position vector per vertex)
+	private static final float[] VERTICES = { 
+			// first triangle
 			-0.9f, -0.5f, 0.0f,  // left 
 			-0.0f, -0.5f, 0.0f,  // right
 			-0.45f, 0.5f, 0.0f,  // top 
-	}; 
-
-	// Second triangle
-	private static final float[] VERTICES2 = {
+			// second triangle
 			0.0f, -0.5f, 0.0f,  // left
 			0.9f, -0.5f, 0.0f,  // right
-			0.45f, 0.5f, 0.0f   // top 	
-	};
+			0.45f, 0.5f, 0.0f   // top 
+	}; 
 
 
 	public static void main(String[] args) {
@@ -106,27 +97,18 @@ public class HelloTriangleExercise3 {
 
 		// Create shaders
 		final int vertex = createShader(GL_VERTEX_SHADER, VERT_SRC);
-		final int fragment1 = createShader(GL_FRAGMENT_SHADER, FRAG_SRC1);
-		final int fragment2 = createShader(GL_FRAGMENT_SHADER, FRAG_SRC2);
-		// Build and compile the 2 shader programs
-		final int shaderProgram1 = createShaderProgram(vertex, fragment1);
-		final int shaderProgram2 = createShaderProgram(vertex, fragment2);
+		final int fragment = createShader(GL_FRAGMENT_SHADER, FRAG_SRC);
+		// Build and compile the shader program
+		final int shaderProgram = createShaderProgram(vertex, fragment);
 		// Delete shaders
 		glDeleteShader(vertex);
-		glDeleteShader(fragment1);
-		glDeleteShader(fragment2);
-		
-		// Set up vertex data, the Vertex Buffer Object (VBO) and the Vertex Array Object (VAO)
-		
-		// First triangle
-		final int vao1 = glGenVertexArrays();
-		final int vbo1 = glGenBuffers();
-		setUpVertexData(vao1, vbo1, VERTICES1);
+		glDeleteShader(fragment);
 
-		// Second triangle
-		final int vao2 = glGenVertexArrays();
-		final int vbo2 = glGenBuffers();
-		setUpVertexData(vao2, vbo2, VERTICES2);
+		// Set up vertex data, the Vertex Buffer Object (VBO) and the Vertex Array Object (VAO)
+		final int vao = glGenVertexArrays();
+		final int vbo = glGenBuffers();
+		setUpVertexData(vao, vbo);
+
 
 		// Uncomment this call to draw in wireframe polygons
 		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -142,14 +124,12 @@ public class HelloTriangleExercise3 {
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
 
-			// Draw first triangle using the data from the first VAO and the shader program 1
-			glUseProgram(shaderProgram1);
-			glBindVertexArray(vao1);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
-			// Then we draw the second triangle using the data from the second VAO and the shader program 2
-			glUseProgram(shaderProgram2);
-			glBindVertexArray(vao2);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
+			// Draw triangles
+			glUseProgram(shaderProgram);
+			// Seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+			glBindVertexArray(vao);
+			glDrawArrays(GL_TRIANGLES, 0, 6); // Set the count to 6 since we're drawing 6 vertices now (2 triangles); not 3!
+			// glBindVertexArray(0); // No need to unbind it every time
 
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
@@ -158,12 +138,9 @@ public class HelloTriangleExercise3 {
 		}
 
 		// Deallocate all resources when no longer necessary
-		glDeleteVertexArrays(vao1);
-		glDeleteBuffers(vbo1);
-		glDeleteVertexArrays(vao2);
-		glDeleteBuffers(vbo2);
-		glDeleteProgram(shaderProgram1);
-		glDeleteProgram(shaderProgram2);
+		glDeleteVertexArrays(vao);
+		glDeleteBuffers(vbo);
+		glDeleteProgram(shaderProgram);
 
 		// Clear all allocated resources by GLFW
 		glfwTerminate();
@@ -232,12 +209,12 @@ public class HelloTriangleExercise3 {
 		return shader;
 	}
 
-	private static void setUpVertexData(int vao, int vbo, float[] data) {
+	private static void setUpVertexData(int vao, int vbo) {
 		// Bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 		glBindVertexArray(vao);
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, data, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, VERTICES, GL_STATIC_DRAW);
 
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * Float.BYTES, NULL);
 		glEnableVertexAttribArray(0);
