@@ -137,6 +137,7 @@ public class TexturesCombined {
 		// Deallocate all resources when no longer necessary
 		glDeleteVertexArrays(vao);
 		glDeleteBuffers(vbo);
+		glDeleteBuffers(ebo);
 		glDeleteTextures(texture1);
 		glDeleteTextures(texture2);
 		ourShader.delete();

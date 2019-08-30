@@ -1,7 +1,8 @@
-package learnopengl.p1_getting_started.ch41_textures;
+package learnopengl.p1_getting_started.ch61_coordinate_system;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -12,17 +13,18 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.logging.Logger;
 
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
-import learnopengl.p1_getting_started.ch44_textures_exercise3.TexturesExercise3;
-import learnopengl.util.Shader1;
+import learnopengl.util.Shader2;
 
-public class Textures {
-
+public class CoordinateSystems {
+	
 	private static Logger logger = Logger.getAnonymousLogger();
 
 	// Callbacks
@@ -38,18 +40,17 @@ public class Textures {
 
 
 	private static final float[] VERTICES = {
-			// positions          // colors           // texture coords
-			0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-			0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-			-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-			-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+	        // positions          // texture coords
+	         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right
+	         0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right
+	        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, // bottom left
+	        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f // top left 
 	}; 
 
 	private static final int[] INDICES = {
 			0, 1, 3, // first triangle
 			1, 2, 3  // second triangle
 	};
-
 
 	public static void main(String[] args) {
 
@@ -86,18 +87,28 @@ public class Textures {
 		}
 
 		// Build and compile our shader program
-		final String dir = Textures.class.getResource(".").getFile();
-		Shader1 ourShader = new Shader1(dir+"ch41_texture.vs", dir+"ch41_texture.fs");
+		final String dir = CoordinateSystems.class.getResource(".").getFile();
+		Shader2 ourShader = new Shader2(dir+"ch61_coordinate_system.vs", dir+"ch61_coordinate_system.fs");
 
 		// Set up vertex data, the Vertex Buffer Object (VBO) and the Vertex Array Object (VAO)
 		final int vao = glGenVertexArrays();
 		final int vbo = glGenBuffers();
 		final int ebo = glGenBuffers();
 		setUpVertexData(vao, vbo, ebo);
-		
-		// Load Texture
-		final int texture = loadTexture("resources/textures/container.jpg");
-		
+
+		// Load Textures
+		// Note that we set the container wrapping method to GL_CLAMP_TO_EDGE
+		// Set texture filtering to nearest neighbor to clearly see the texels/pixels
+		final int texture1 = loadTexture("resources/textures/container.jpg", true, GL_REPEAT, GL_LINEAR); 
+		final int texture2 = loadTexture("resources/textures/awesomeface.png", true, GL_REPEAT, GL_LINEAR);
+
+		ourShader.use();
+
+		// Tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+		ourShader.use(); // Don't forget to activate/use the shader before setting uniforms!
+		ourShader.setInt("texture1", 0);
+		ourShader.setInt("texture2", 1);
+
 		// Render loop
 		while(!glfwWindowShouldClose(window)) {
 
@@ -107,14 +118,37 @@ public class Textures {
 			// Clear the screen
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
-			
-			// Bind texture
-			glBindTexture(GL_TEXTURE_2D, texture);
 
+			// Bind textures
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, texture1);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, texture2);
+
+			// Activate shader
 			ourShader.use();
+
+			// Create transformations
+			Matrix4f model = new Matrix4f();
+			Matrix4f view = new Matrix4f();
+			Matrix4f projection = new Matrix4f();
+			
+			// JOML needs the rotation vector to be normalized
+			model.rotate((float)Math.toRadians(-55.0), new Vector3f(1.0f, 0.0f, 0.0f).normalize());
+			view.translate(0.0f, 0.0f, -3.0f);
+			projection.perspective((float)Math.toRadians(45.0), (float)SRC_WIDTH / (float)SRC_HEIGHT, 0.1f, 100.0f);
+			
+			// Update the matrix uniforms
+			ourShader.setMat4("model", model);
+			ourShader.setMat4("view", view);
+			// Note: currently we set the projection matrix each frame, but since the projection matrix 
+			// rarely changes it's often best practice to set it outside the main loop only once.
+			ourShader.setMat4("projection", projection);
+			
+			// Render container
 			glBindVertexArray(vao);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
+			
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -125,7 +159,8 @@ public class Textures {
 		glDeleteVertexArrays(vao);
 		glDeleteBuffers(vbo);
 		glDeleteBuffers(ebo);
-		glDeleteTextures(texture);
+		glDeleteTextures(texture1);
+		glDeleteTextures(texture2);
 		ourShader.delete();
 
 		// Clear all allocated resources by GLFW
@@ -141,16 +176,12 @@ public class Textures {
 		glBufferData(GL_ARRAY_BUFFER, VERTICES, GL_STATIC_DRAW);
 
 		// Position
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 8 * Float.BYTES, 0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * Float.BYTES, 0);
 		glEnableVertexAttribArray(0);
 
-		// Color
-		glVertexAttribPointer(1, 3, GL_FLOAT, false, 8 * Float.BYTES, 3 * Float.BYTES);
-		glEnableVertexAttribArray(1);
-
 		// Texture coordinates
-		glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * Float.BYTES, 6 * Float.BYTES);
-		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
+		glEnableVertexAttribArray(1);
 
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -167,38 +198,60 @@ public class Textures {
 		glBindVertexArray(0); 
 	}
 
-	private static int loadTexture(String path) {
+	private static int loadTexture(String path, boolean flipY, int wrapping, int filtering) {
 
 		final int texture = glGenTextures();
 
 		glBindTexture(GL_TEXTURE_2D, texture); // All upcoming GL_TEXTURE_2D operations now have effect on this texture object
 		// Set the texture wrapping parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // Set texture wrapping to GL_REPEAT (default wrapping method)
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping); // Set texture wrapping to GL_REPEAT (default wrapping method)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
 		// Set texture filtering parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filtering);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filtering);
+
 		// Load image, create texture and generate mipmaps
 		try(MemoryStack stack = MemoryStack.stackPush()) {
-			
+
 			IntBuffer width = stack.ints(0);
 			IntBuffer height = stack.ints(0);
 			IntBuffer nrChannels = stack.ints(0);
-			
+
+			stbi_set_flip_vertically_on_load(flipY); // Tell stb_image.h whether to flip loaded texture's on the y-axis or not.
+
 			ByteBuffer data = stbi_load(path, width, height, nrChannels, 0);
-			
+
 			if(data != null) {
+
+				int format = 0;
 				
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width.get(0), height.get(0), 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+				switch(nrChannels.get(0)) {
+				
+				case 1:
+					format = GL_RED;
+					break;
+				case 2:
+					format = GL_RG;
+					break;
+				case 3:
+					format = GL_RGB;
+					break;
+				case 4:
+					format = GL_RGBA;
+					break;
+				default:
+					logger.severe("Unexpected number of channels");
+				}
+
+				glTexImage2D(GL_TEXTURE_2D, 0, format, width.get(0), height.get(0), 0, format, GL_UNSIGNED_BYTE, data);
 				glGenerateMipmap(GL_TEXTURE_2D);
-				
+
 			} else {
 				logger.severe("Failed to load texture: " + path);
 			}
-			
+
 			stbi_image_free(data);
-			
+
 		}
 
 		return texture;
@@ -209,7 +262,8 @@ public class Textures {
 		// Close window when ESC key is pressed
 		if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 			glfwSetWindowShouldClose(window, true);
-		}
+			
+		} 
 
 	}
 

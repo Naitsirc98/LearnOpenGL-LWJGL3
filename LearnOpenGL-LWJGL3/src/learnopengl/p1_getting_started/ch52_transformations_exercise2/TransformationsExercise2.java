@@ -15,6 +15,7 @@ import java.nio.IntBuffer;
 import java.util.logging.Logger;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
@@ -133,7 +134,8 @@ public class TransformationsExercise2 {
 			// First container
 			Matrix4f transform = new Matrix4f(); // Identity matrix
 			transform.translate(0.5f, -0.5f, 0.0f);
-			transform.rotate((float)glfwGetTime(), 0.0f, 0.0f, 1.0f);
+			// JOML needs the rotation vector to be normalized
+			transform.rotate((float)glfwGetTime(), new Vector3f(0.0f, 0.0f, 1.0f).normalize());
 			
 			try(MemoryStack stack = MemoryStack.stackPush()) {
 				FloatBuffer transformData = stack.mallocFloat(16);
@@ -168,6 +170,7 @@ public class TransformationsExercise2 {
 		// Deallocate all resources when no longer necessary
 		glDeleteVertexArrays(vao);
 		glDeleteBuffers(vbo);
+		glDeleteBuffers(ebo);
 		glDeleteTextures(texture1);
 		glDeleteTextures(texture2);
 		ourShader.delete();

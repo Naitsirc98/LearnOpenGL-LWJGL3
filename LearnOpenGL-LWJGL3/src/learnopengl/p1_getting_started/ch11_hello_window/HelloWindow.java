@@ -41,7 +41,7 @@ public class HelloWindow {
 	    }
 		
 	    // Window creation
-	    
+		// With LWJGL we use long instead of GLFWwindow*
 	    final long window = glfwCreateWindow(SRC_WIDTH, SRC_HEIGHT, "LearnOpenGL", NULL, NULL);
 	    
 	    if(window == NULL) {
