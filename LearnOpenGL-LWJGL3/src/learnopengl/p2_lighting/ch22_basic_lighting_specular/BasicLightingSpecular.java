@@ -1,4 +1,4 @@
-package learnopengl.p2_lighting.ch1_colors;
+package learnopengl.p2_lighting.ch22_basic_lighting_specular;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -22,7 +22,7 @@ import learnopengl.util.Camera;
 import learnopengl.util.Camera.CameraMovement;
 import learnopengl.util.Shader2;
 
-public class Colors {
+public class BasicLightingSpecular {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -44,7 +44,7 @@ public class Colors {
 	// Timing
 	private static float deltaTime = 0.0f; // Time between current frame and last frame
 	private static float lastFrame = 0.0f;
-	
+
 	// Lighting
 	private static Vector3f lightPos = new Vector3f(1.2f, 1.0f, 2.0f);
 
@@ -83,47 +83,47 @@ public class Colors {
 
 
 	private static final float[] VERTICES = {
-			-0.5f, -0.5f, -0.5f, 
-			0.5f, -0.5f, -0.5f,  
-			0.5f,  0.5f, -0.5f,  
-			0.5f,  0.5f, -0.5f,  
-			-0.5f,  0.5f, -0.5f, 
-			-0.5f, -0.5f, -0.5f, 
+			-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+			0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+			0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+			0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+			-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+			-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
 
-			-0.5f, -0.5f,  0.5f, 
-			0.5f, -0.5f,  0.5f,  
-			0.5f,  0.5f,  0.5f,  
-			0.5f,  0.5f,  0.5f,  
-			-0.5f,  0.5f,  0.5f, 
-			-0.5f, -0.5f,  0.5f, 
+			-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+			0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+			0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+			0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+			-0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+			-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
 
-			-0.5f,  0.5f,  0.5f, 
-			-0.5f,  0.5f, -0.5f, 
-			-0.5f, -0.5f, -0.5f, 
-			-0.5f, -0.5f, -0.5f, 
-			-0.5f, -0.5f,  0.5f, 
-			-0.5f,  0.5f,  0.5f, 
+			-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+			-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+			-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+			-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+			-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+			-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-			0.5f,  0.5f,  0.5f,  
-			0.5f,  0.5f, -0.5f,  
-			0.5f, -0.5f, -0.5f,  
-			0.5f, -0.5f, -0.5f,  
-			0.5f, -0.5f,  0.5f,  
-			0.5f,  0.5f,  0.5f,  
+			0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+			0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+			0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+			0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+			0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+			0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
 
-			-0.5f, -0.5f, -0.5f, 
-			0.5f, -0.5f, -0.5f,  
-			0.5f, -0.5f,  0.5f,  
-			0.5f, -0.5f,  0.5f,  
-			-0.5f, -0.5f,  0.5f, 
-			-0.5f, -0.5f, -0.5f, 
+			-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+			0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+			0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+			0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+			-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+			-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
 
-			-0.5f,  0.5f, -0.5f, 
-			0.5f,  0.5f, -0.5f,  
-			0.5f,  0.5f,  0.5f,  
-			0.5f,  0.5f,  0.5f,  
-			-0.5f,  0.5f,  0.5f, 
-			-0.5f, 0.5f, -0.5f, 
+			-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+			0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+			0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+			0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+			-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+			-0.5f, 0.5f, -0.5f, 0.0f, 	 1.0f, 0.0f
 	}; 
 
 	public static void main(String[] args) {
@@ -166,15 +166,15 @@ public class Colors {
 		}
 
 		// Build and compile our shader programs
-		final String dir = Colors.class.getResource(".").getFile();
-		Shader2 lightingShader = new Shader2(dir+"ch1_colors.vs", dir+"ch1_colors.fs");
-		Shader2 lampShader = new Shader2(dir+"ch1_lamp.vs", dir+"ch1_lamp.fs");
-		
+		final String dir = BasicLightingSpecular.class.getResource(".").getFile();
+		Shader2 lightingShader = new Shader2(dir+"ch22_basic_lighting.vs", dir+"ch22_basic_lighting.fs");
+		Shader2 lampShader = new Shader2(dir+"ch22_lamp.vs", dir+"ch22_lamp.fs");
+
 		// First, configure the cube's VAO (and VBO)
 		final int cubeVAO = glGenVertexArrays();
 		final int vbo = glGenBuffers();
 		setUpVertexData(cubeVAO, vbo);
-		
+
 		// Second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object
 		// which is also a 3D cube)
 		final int lightVAO = glGenVertexArrays();
@@ -208,7 +208,9 @@ public class Colors {
 			lightingShader.use();
 			lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 			lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-			
+			lightingShader.setVec3("lightPos", lightPos);
+			lightingShader.setVec3("viewPos", camera.position);
+
 			// Update projection matrix if necessary
 			if(updateProjection) {
 				projection.setPerspective((float)Math.toRadians(camera.zoom), (float)windowWidth / (float)windowHeight, 
@@ -224,11 +226,11 @@ public class Colors {
 			// World transformation
 			Matrix4f model = new Matrix4f();
 			lightingShader.setMat4("model", model);
-			
+
 			// Render the cube
 			glBindVertexArray(cubeVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-			
+
 			// Also draw the lamp object
 			lampShader.use();
 			lampShader.setMat4("projection", projection);
@@ -236,10 +238,10 @@ public class Colors {
 			model.translation(lightPos);
 			model.scale(0.2f); // A smaller cube
 			lampShader.setMat4("model", model);
-			
+
 			glBindVertexArray(lightVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-			
+
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -252,7 +254,7 @@ public class Colors {
 		glDeleteBuffers(vbo);
 		lightingShader.delete();
 		lampShader.delete();
-		
+
 		// Clear all allocated resources by GLFW
 		glfwTerminate();
 
@@ -266,8 +268,12 @@ public class Colors {
 		glBufferData(GL_ARRAY_BUFFER, VERTICES, GL_STATIC_DRAW);
 
 		// Position
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * Float.BYTES, 0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 6 * Float.BYTES, 0);
 		glEnableVertexAttribArray(0);
+		
+		// Normal
+		glVertexAttribPointer(1, 3, GL_FLOAT, false, 6 * Float.BYTES, 3 * Float.BYTES);
+		glEnableVertexAttribArray(1);
 
 
 		// Note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
