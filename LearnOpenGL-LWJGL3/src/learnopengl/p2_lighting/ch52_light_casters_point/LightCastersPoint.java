@@ -1,4 +1,4 @@
-package learnopengl.p2_lighting.ch43_lighting_maps_exercise4;
+package learnopengl.p2_lighting.ch52_light_casters_point;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -26,7 +26,7 @@ import learnopengl.util.Camera;
 import learnopengl.util.Camera.CameraMovement;
 import learnopengl.util.Shader2;
 
-public class LightingMapsExercise4 {
+public class LightCastersPoint {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -48,8 +48,8 @@ public class LightingMapsExercise4 {
 	// Timing
 	private static float deltaTime = 0.0f; // Time between current frame and last frame
 	private static float lastFrame = 0.0f;
-
-	// Lighting
+	
+	// Lighting 
 	private static Vector3f lightPos = new Vector3f(1.2f, 1.0f, 2.0f);
 
 	// ============== Callbacks ==============
@@ -87,49 +87,63 @@ public class LightingMapsExercise4 {
 
 
 	private static final float[] VERTICES = {
-			// positions          // normals           // texture coords
-			-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-			0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-			0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-			0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-			-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+	        // positions          // normals           // texture coords
+	        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+	         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
+	         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+	         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+	        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
+	        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
 
-			-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-			0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-			0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-			0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-			-0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-			-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+	        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+	         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
+	         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+	         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+	        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
+	        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
 
-			-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-			-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-			-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-			-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-			-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-			-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+	        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+	        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+	        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+	        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+	        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+	        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-			0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-			0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-			0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-			0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-			0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-			0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+	         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+	         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+	         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+	         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+	         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+	         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-			-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-			0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-			0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-			0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-			-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+	        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+	         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+	         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+	         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+	        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
+	        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
 
-			-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-			0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-			0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-			0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-			-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-			-0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 		0.0f, 1.0f
+	        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+	         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
+	         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+	         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+	        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+	        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
 	}; 
+	
+	// Positions all containers
+    private static Vector3f[] cubePositions = {
+        new Vector3f( 0.0f,  0.0f,  0.0f),
+        new Vector3f( 2.0f,  5.0f, -15.0f),
+        new Vector3f(-1.5f, -2.2f, -2.5f),
+        new Vector3f(-3.8f, -2.0f, -12.3f),
+        new Vector3f( 2.4f, -0.4f, -3.5f),
+        new Vector3f(-1.7f,  3.0f, -7.5f),
+        new Vector3f( 1.3f, -2.0f, -2.5f),
+        new Vector3f( 1.5f,  2.0f, -2.5f),
+        new Vector3f( 1.5f,  0.2f, -1.5f),
+        new Vector3f(-1.3f,  1.0f, -1.5f)
+};
 
 	public static void main(String[] args) {
 
@@ -171,9 +185,9 @@ public class LightingMapsExercise4 {
 		}
 
 		// Build and compile our shader programs
-		final String dir = LightingMapsExercise4.class.getResource(".").getFile();
-		Shader2 lightingShader = new Shader2(dir+"ch43_lighting_maps.vs", dir+"ch43_lighting_maps.fs");
-		Shader2 lampShader = new Shader2(dir+"ch43_lamp.vs", dir+"ch43_lamp.fs");
+		final String dir = LightCastersPoint.class.getResource(".").getFile();
+		Shader2 lightingShader = new Shader2(dir+"ch52_light_casters.vs", dir+"ch52_light_casters.fs");
+		Shader2 lampShader = new Shader2(dir+"ch52_lamp.vs", dir+"ch52_lamp.fs");
 
 		// First, configure the cube's VAO (and VBO)
 		final int cubeVAO = glGenVertexArrays();
@@ -188,14 +202,12 @@ public class LightingMapsExercise4 {
 		// Load textures
 		final int diffuseMap = loadTexture("resources/textures/container2.png", false, GL_REPEAT, GL_LINEAR);
 		final int specularMap = loadTexture("resources/textures/container2_specular.png", false, GL_REPEAT, GL_LINEAR);
-		final int emissionMap = loadTexture("resources/textures/matrix.jpg", false, GL_REPEAT, GL_LINEAR);
-		
+
 		// Shader configuration
 		// Assign the lighting maps to their corresponding texture units
 		lightingShader.use();
 		lightingShader.setInt("material.diffuse", 0);
 		lightingShader.setInt("material.specular", 1);
-		lightingShader.setInt("material.emission", 2);
 		
 		// Configure global OpenGL state
 		glEnable(GL_DEPTH_TEST);
@@ -227,12 +239,15 @@ public class LightingMapsExercise4 {
 			lightingShader.setVec3("viewPos", camera.position);
 
 	        // Light properties
-	        lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f); 
+	        lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
 	        lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
 	        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+	        lightingShader.setFloat("light.constant", 1.0f);
+	        lightingShader.setFloat("light.linear", 0.09f);
+	        lightingShader.setFloat("light.quadratic", 0.032f);
 
 	        // Material properties
-	        lightingShader.setFloat("material.shininess", 64.0f);
+	        lightingShader.setFloat("material.shininess", 32.0f);
 
 
 			// Update projection matrix if necessary
@@ -246,10 +261,6 @@ public class LightingMapsExercise4 {
 			// Camera/view transformations
 			final Matrix4f view = camera.getViewMatrix();
 			lightingShader.setMat4("view", view);
-
-			// World transformation
-			Matrix4f model = new Matrix4f();
-			lightingShader.setMat4("model", model);
 			
 			// Bind diffuse map
 			glActiveTexture(GL_TEXTURE0);
@@ -257,13 +268,21 @@ public class LightingMapsExercise4 {
 			// Bind specular map
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, specularMap);
-			// Bind emission map
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, emissionMap);
 			
-			// Render the cube
+			// Render the cubes
 			glBindVertexArray(cubeVAO);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
+			Matrix4f model = new Matrix4f();
+			// JOML needs the rotation vector to be normalized
+			final Vector3f rotationVector = new Vector3f(1.0f, 0.3f, 0.5f).normalize();
+			
+			for(int i = 0;i < cubePositions.length;i++) {
+				model.translation(cubePositions[i]);
+				final float angle = (float)Math.toRadians(20.0f * i);
+				model.rotate(angle, rotationVector);
+				lightingShader.setMat4("model", model);
+				
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+			}
 
 			// Also draw the lamp object
 			lampShader.use();
@@ -272,7 +291,7 @@ public class LightingMapsExercise4 {
 			model.translation(lightPos);
 			model.scale(0.2f); // A smaller cube
 			lampShader.setMat4("model", model);
-
+            
 			glBindVertexArray(lightVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 
