@@ -184,19 +184,19 @@ public class LightingMapsExercise4 {
 		// which is also a 3D cube)
 		final int lightVAO = glGenVertexArrays();
 		setUpVertexData(lightVAO, vbo);
-		
+
 		// Load textures
 		final int diffuseMap = loadTexture("resources/textures/container2.png", false, GL_REPEAT, GL_LINEAR);
 		final int specularMap = loadTexture("resources/textures/container2_specular.png", false, GL_REPEAT, GL_LINEAR);
 		final int emissionMap = loadTexture("resources/textures/matrix.jpg", false, GL_REPEAT, GL_LINEAR);
-		
+
 		// Shader configuration
 		// Assign the lighting maps to their corresponding texture units
 		lightingShader.use();
 		lightingShader.setInt("material.diffuse", 0);
 		lightingShader.setInt("material.specular", 1);
 		lightingShader.setInt("material.emission", 2);
-		
+
 		// Configure global OpenGL state
 		glEnable(GL_DEPTH_TEST);
 
@@ -226,13 +226,13 @@ public class LightingMapsExercise4 {
 			lightingShader.setVec3("light.position", lightPos);
 			lightingShader.setVec3("viewPos", camera.position);
 
-	        // Light properties
-	        lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f); 
-	        lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-	        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+			// Light properties
+			lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f); 
+			lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+			lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
-	        // Material properties
-	        lightingShader.setFloat("material.shininess", 64.0f);
+			// Material properties
+			lightingShader.setFloat("material.shininess", 64.0f);
 
 
 			// Update projection matrix if necessary
@@ -250,7 +250,7 @@ public class LightingMapsExercise4 {
 			// World transformation
 			Matrix4f model = new Matrix4f();
 			lightingShader.setMat4("model", model);
-			
+
 			// Bind diffuse map
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, diffuseMap);
@@ -260,7 +260,7 @@ public class LightingMapsExercise4 {
 			// Bind emission map
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, emissionMap);
-			
+
 			// Render the cube
 			glBindVertexArray(cubeVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -322,7 +322,7 @@ public class LightingMapsExercise4 {
 		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
 		glBindVertexArray(0); 
 	}
-	
+
 	private static int loadTexture(String path, boolean flipY, int wrapping, int filtering) {
 
 		final int texture = glGenTextures();
@@ -334,24 +334,24 @@ public class LightingMapsExercise4 {
 		// Set texture filtering parameters
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filtering);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filtering);
-		
+
 		// Load image, create texture and generate mipmaps
 		try(MemoryStack stack = MemoryStack.stackPush()) {
-			
+
 			IntBuffer width = stack.ints(0);
 			IntBuffer height = stack.ints(0);
 			IntBuffer nrChannels = stack.ints(0);
-			
+
 			stbi_set_flip_vertically_on_load(flipY); // Tell stb_image.h whether to flip loaded texture's on the y-axis or not.
-			
+
 			ByteBuffer data = stbi_load(path, width, height, nrChannels, 0);
-			
+
 			if(data != null) {
-				
+
 				int format = 0;
-				
+
 				switch(nrChannels.get(0)) {
-				
+
 				case 1:
 					format = GL_RED;
 					break;
@@ -367,16 +367,16 @@ public class LightingMapsExercise4 {
 				default:
 					logger.severe("Unexpected number of channels");
 				}
-				
+
 				glTexImage2D(GL_TEXTURE_2D, 0, format, width.get(0), height.get(0), 0, format, GL_UNSIGNED_BYTE, data);
 				glGenerateMipmap(GL_TEXTURE_2D);
-				
+
 			} else {
 				logger.severe("Failed to load texture: " + path);
 			}
-			
+
 			stbi_image_free(data);
-			
+
 		}
 
 		return texture;
