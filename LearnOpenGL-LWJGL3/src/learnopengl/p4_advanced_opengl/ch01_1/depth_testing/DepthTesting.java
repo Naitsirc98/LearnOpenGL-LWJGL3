@@ -2,6 +2,7 @@ package learnopengl.p4_advanced_opengl.ch01_1.depth_testing;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -185,6 +186,10 @@ public class DepthTesting {
 			return;
 		}
 		
+		// Configure global OpenGL state
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_ALWAYS); // Always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+		
 		// Cube
 		final int cubeVAO = glGenVertexArrays();
 		final int cubeVBO = glGenBuffers();
@@ -197,7 +202,7 @@ public class DepthTesting {
 		
 		// Load textures
 		final int cubeTexture = loadTexture("resources/textures/marble.jpg", false);
-		final int planeTexture = loadTexture("resources/textures/metal.jpg", false);
+		final int planeTexture = loadTexture("resources/textures/metal.png", false);
 		
 		// Build and compile our shader program
 		final String dir = DepthTesting.class.getResource(".").getFile();
@@ -207,9 +212,6 @@ public class DepthTesting {
 
 		// Draw in wireframe
 		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-		// Configure global OpenGL state
-		glEnable(GL_DEPTH_TEST);
 
 		// Pass projection matrix to shader (as projection matrix rarely changes there's no need to do this per frame)
 		// ** This is true as long as you don't change the window size!
@@ -231,7 +233,7 @@ public class DepthTesting {
 			processInput(window);
 
 			// Clear the screen
-			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			// Do not forget to enable shader before setting uniforms
@@ -251,7 +253,7 @@ public class DepthTesting {
 
 			// Cubes
 			glBindVertexArray(cubeVAO);
-			glActiveTexture(cubeTexture);
+			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, cubeTexture);
 			// Cube 1
 			model.translation(-1.0f, 0.0f, -1.0f);
@@ -281,6 +283,8 @@ public class DepthTesting {
 		glDeleteVertexArrays(planeVAO);
 		glDeleteBuffers(cubeVBO);
 		glDeleteBuffers(planeVBO);
+		glDeleteTextures(cubeTexture);
+		glDeleteTextures(planeTexture);
 		ourShader.delete();
 
 		// Clear all allocated resources by GLFW

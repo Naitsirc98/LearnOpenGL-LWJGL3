@@ -17,7 +17,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.Platform;
 
-import learnopengl.p2_lighting.ch1_colors.Colors;
+import learnopengl.p2_lighting.ch01_colors.Colors;
 import learnopengl.util.Camera;
 import learnopengl.util.Camera.CameraMovement;
 import learnopengl.util.Model;
