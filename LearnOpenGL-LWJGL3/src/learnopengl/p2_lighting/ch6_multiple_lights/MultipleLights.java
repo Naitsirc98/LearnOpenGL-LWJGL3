@@ -49,9 +49,6 @@ public class MultipleLights {
 	private static float deltaTime = 0.0f; // Time between current frame and last frame
 	private static float lastFrame = 0.0f;
 
-	// Lighting
-	private static Vector3f lightPos = new Vector3f(1.2f, 1.0f, 2.0f);
-
 	// ============== Callbacks ==============
 
 	private static final GLFWFramebufferSizeCallbackI FRAMEBUFFER_SIZE_CALLBACK = (window, width, height) -> {
