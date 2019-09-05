@@ -126,7 +126,7 @@ public class Camera {
 	/**
 	 * Calculates the front vector from the Camera's (updated) Euler Angles
 	 * */
-	private void updateCameraVectors() {
+	public void updateCameraVectors() {
 		
 		// Calculate the new front vector
 		Vector3f front = new Vector3f();
