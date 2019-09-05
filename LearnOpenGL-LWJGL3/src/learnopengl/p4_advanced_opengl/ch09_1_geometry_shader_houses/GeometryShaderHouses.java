@@ -1,4 +1,4 @@
-package learnopengl.p4_advanced_opengl.ch03_2.blending_sorted;
+package learnopengl.p4_advanced_opengl.ch09_1_geometry_shader_houses;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -30,7 +30,7 @@ import learnopengl.util.Camera;
 import learnopengl.util.Camera.CameraMovement;
 import learnopengl.util.Shader;
 
-public class BlendingSorted {
+public class GeometryShaderHouses {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -55,75 +55,12 @@ public class BlendingSorted {
 
 
 	// Vertex Data
-	private static final float CUBE_VERTICES[] = {
-			// positions          // texture Coords
-			-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-			0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-			0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-			-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-			-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-			-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-			0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-			0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-			-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-			0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-			0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-			-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-			0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-			-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-			-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+	private static final float POINTS[] = {
+			-0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // top-left
+			0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // top-right
+			0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
+			-0.5f, -0.5f, 1.0f, 1.0f, 0.0f // bottom-left
 	};
-
-	private static final float PLANE_VERTICES[] = {
-			// positions          // texture Coords (note we set these higher than 1 
-			//(together with GL_REPEAT as texture wrapping mode).
-			// this will cause the floor texture to repeat)
-			5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-			-5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
-			-5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-
-			5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-			-5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-			5.0f, -0.5f, -5.0f,  2.0f, 2.0f								
-	};
-
-	private static final float[] TRANSPARENT_VERTICES = {
-			// positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
-			0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
-			0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
-			1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
-
-			0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
-			1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
-			1.0f, 0.5f, 0.0f, 1.0f, 0.0f
-	};
-
 
 	// ============== Callbacks ==============
 
@@ -200,66 +137,15 @@ public class BlendingSorted {
 
 		// Configure global OpenGL state
 		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		// Cube
-		final int cubeVAO = glGenVertexArrays();
-		final int cubeVBO = glGenBuffers();
-		setUpVertexData(cubeVAO, cubeVBO, CUBE_VERTICES);
-
-		// Plane
-		final int planeVAO = glGenVertexArrays();
-		final int planeVBO = glGenBuffers();
-		setUpVertexData(planeVAO, planeVBO, PLANE_VERTICES);
-
-		// Transparent
-		final int transparentVAO = glGenVertexArrays();
-		final int transparentVBO = glGenBuffers();
-		setUpVertexData(transparentVAO, transparentVBO, TRANSPARENT_VERTICES);
-
-		// Load textures
-		final int cubeTexture = loadTexture("resources/textures/marble.jpg", false, GL_REPEAT, GL_LINEAR);
-		final int planeTexture = loadTexture("resources/textures/metal.png", false, GL_REPEAT, GL_LINEAR);
-		final int transparentTexture = loadTexture("resources/textures/window.png", false, GL_REPEAT, GL_LINEAR);
+		final int vao = glGenVertexArrays();
+		final int vbo = glGenBuffers();
+		setUpVertexData(vao, vbo, POINTS);
 
 		// Build and compile our shader program
-		final String dir = BlendingSorted.class.getResource(".").getFile();
-		Shader shader = new Shader(dir+"blending.vs", dir+"blending.fs");
-
-		// Pass projection matrix to shader (as projection matrix rarely changes there's no need to do this per frame)
-		// ** This is true as long as you don't change the window size!
-		// That's why I check every frame if the projection matrix has to be changed
-		Matrix4f projection = new Matrix4f();
-
-		// Create the model matrix before enter the loop to avoid calling new every frame
-		Matrix4f model = new Matrix4f();
-
-		// Transparent vegetation locations
-		Vector3f[] windows = {
-				new Vector3f(-1.5f, 0.0f, -0.48f),
-				new Vector3f( 1.5f, 0.0f, 0.51f),
-				new Vector3f( 0.0f, 0.0f, 0.7f),
-				new Vector3f(-0.3f, 0.0f, -2.3f),
-				new Vector3f (0.5f, 0.0f, -0.6f)
-		};
-
-		shader.use();
-		shader.setInt("texture1", 0);
-
-
-		// Since we only want to sort the windows, we can use a PriorityQueue (Heap tree) instead of a SortedMap, which is usually faster
-		// First of all, we have to define a compare function for the Vector3f class, because it doesn't define one
-		// We can do that by creating a Comparator object
-		Comparator<Vector3f> comparator = (v1, v2) -> {
-			final float v1Distance = camera.position.distance(v1);
-			final float v2Distance = camera.position.distance(v2);
-			return Float.compare(v1Distance, v2Distance);
-		};
-		// Reversed the comparator, since we want to sort from furthest to nearest
-		comparator = comparator.reversed();
-		// Now create the Sorted Queue and pass in the comparator
-		Queue<Vector3f> sorted = new PriorityQueue<>(comparator);
+		final String dir = GeometryShaderHouses.class.getResource(".").getFile();
+		Shader shader = new Shader(dir+"geometry_shader.vs", dir+"geometry_shader.fs", dir+"geometry_shader.gs");
 
 		// Render loop
 		while(!glfwWindowShouldClose(window)) {
@@ -272,60 +158,15 @@ public class BlendingSorted {
 			// Input
 			processInput(window);
 
-			// Sort the transparent windows before rendering
-			// All we have to do is add the window's positions to the queue
-			for(Vector3f winPos : windows) {
-				sorted.add(winPos);
-			}
-
 			// Clear the screen
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			// Don't forget to clear the stencil buffer!
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-			// Set uniforms
+			// Draw points
 			shader.use();
-			final Matrix4f view = camera.getViewMatrix();
-			shader.setMat4("view", view);
-
-			// Update projection matrix if necessary
-			if(updateProjection) {
-				projection.setPerspective((float)Math.toRadians(camera.zoom), (float)windowWidth / (float)windowHeight, 
-						0.1f, 100.0f);
-				shader.setMat4("projection", projection);
-				updateProjection = false;
-			}
-
-			// Cubes
-			glBindVertexArray(cubeVAO);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, cubeTexture);
-			// Cube 1
-			model.translation(-1.0f, 0.0f, -1.0f);
-			shader.setMat4("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-			// Cube 2
-			model.translation(2.0f, 0.0f, 0.0f);
-			shader.setMat4("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-
-			// Floor
-			glBindVertexArray(planeVAO);
-			glBindTexture(GL_TEXTURE_2D, planeTexture);
-			shader.setMat4("model", model.identity());
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-			glBindVertexArray(0);
-
-			// Vegetation
-			glBindVertexArray(transparentVAO);
-			glBindTexture(GL_TEXTURE_2D, transparentTexture);
-
-			while(!sorted.isEmpty()) {
-				final Vector3f winPos = sorted.poll();
-				model.translation(winPos);
-				shader.setMat4("model", model);
-				glDrawArrays(GL_TRIANGLES, 0, 6);
-			}
+			glBindVertexArray(vao);
+			glDrawArrays(GL_POINTS, 0, 4);
 
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
@@ -334,15 +175,8 @@ public class BlendingSorted {
 		}
 
 		// Deallocate all resources when no longer necessary
-		glDeleteVertexArrays(cubeVAO);
-		glDeleteVertexArrays(planeVAO);
-		glDeleteVertexArrays(transparentVAO);
-		glDeleteBuffers(cubeVBO);
-		glDeleteBuffers(planeVBO);
-		glDeleteBuffers(transparentVBO);
-		glDeleteTextures(cubeTexture);
-		glDeleteTextures(planeTexture);
-		glDeleteTextures(transparentTexture);
+		glDeleteVertexArrays(vao);
+		glDeleteBuffers(vbo);
 		shader.delete();
 
 		// Clear all allocated resources by GLFW
@@ -358,11 +192,11 @@ public class BlendingSorted {
 		glBufferData(GL_ARRAY_BUFFER, vertexData, GL_STATIC_DRAW);
 
 		// Position
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * Float.BYTES, 0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, false, 5 * Float.BYTES, 0);
 		glEnableVertexAttribArray(0);
 
-		// Texture coordinates
-		glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
+		// Color
+		glVertexAttribPointer(1, 3, GL_FLOAT, false, 5 * Float.BYTES, 2 * Float.BYTES);
 		glEnableVertexAttribArray(1);
 
 		// Note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
