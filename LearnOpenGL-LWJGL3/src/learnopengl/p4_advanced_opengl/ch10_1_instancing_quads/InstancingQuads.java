@@ -1,29 +1,32 @@
-package learnopengl.p4_advanced_opengl.ch9_2_geometry_shader_normals;
+package learnopengl.p4_advanced_opengl.ch10_1_instancing_quads;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL31.*;
+import static org.lwjgl.opengl.GL33.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
+import java.nio.FloatBuffer;
 import java.util.logging.Logger;
 
-import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWCursorPosCallbackI;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
 import org.lwjgl.glfw.GLFWScrollCallbackI;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.Platform;
 
 import learnopengl.util.Camera;
 import learnopengl.util.Camera.CameraMovement;
-import learnopengl.util.Model;
 import learnopengl.util.Shader;
 
-public class GeometryShaderNormals {
+public class InstancingQuads {
 
 	private static Logger logger = Logger.getAnonymousLogger();
-
-	private static boolean updateProjection = true;
 
 	// Window size
 	private static int windowWidth = 1280;
@@ -42,6 +45,18 @@ public class GeometryShaderNormals {
 	private static float deltaTime = 0.0f; // Time between current frame and last frame
 	private static float lastFrame = 0.0f;
 
+	// Vertex Data
+	private static final float[] QUAD_VERTICES = {
+			// positions     // colors
+			-0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
+			0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
+			-0.05f, -0.05f,  0.0f, 0.0f, 1.0f,
+
+			-0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
+			0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
+			0.05f, 0.05f, 0.0f, 1.0f, 1.0f	
+	};
+
 	// ============== Callbacks ==============
 
 	private static final GLFWFramebufferSizeCallbackI FRAMEBUFFER_SIZE_CALLBACK = (window, width, height) -> {
@@ -51,7 +66,6 @@ public class GeometryShaderNormals {
 		// Also update the window width and height variables to correctly set the projection matrix
 		windowWidth = width;
 		windowHeight = height;
-		updateProjection = true;
 	};
 
 	private static final GLFWCursorPosCallbackI MOUSE_MOVE_CALLBACK = (window, xpos, ypos) -> {
@@ -72,7 +86,6 @@ public class GeometryShaderNormals {
 
 	private static final GLFWScrollCallbackI SCROLL_CALLBACK = (window, xoffset, yoffset) -> {
 		camera.processMouseScroll((float)yoffset);
-		updateProjection = true;
 	};
 
 
@@ -115,25 +128,56 @@ public class GeometryShaderNormals {
 			return;
 		}
 
-		// Build and compile our shader program
-		final String dir = GeometryShaderNormals.class.getResource(".").getFile();
-		Shader shader = new Shader(dir+"default.vs", dir+"default.fs");
-		Shader normalShader = new Shader(dir+"normal_visualization.vs", 
-				dir+"normal_visualization.fs", dir+"normal_visualization.gs");
-
-		// Load model
-		Model nanosuit = new Model("resources/objects/nanosuit/nanosuit.obj");
-
 		// Configure global OpenGL state
 		glEnable(GL_DEPTH_TEST);
 
-		// Pass projection matrix to shader (as projection matrix rarely changes there's no need to do this per frame)
-		// ** This is true as long as you don't change the window size!
-		// That's why I check every frame if the projection matrix has to be changed
-		Matrix4f projection = new Matrix4f();
+		// Build and compile our shader program
+		final String dir = InstancingQuads.class.getResource(".").getFile();
+		Shader shader = new Shader(dir+"instancing.vs", dir+"instancing.fs");
 
-		// Create the model matrix before enter the loop to avoid calling new every frame
-		Matrix4f model = new Matrix4f();
+		// Generate a list of 100 quad locations/translation-vectors
+		// Since we have to eventually convert all those vectors into a large FloatBuffer (or float array),
+		// lets fill the buffer directly and don't create the vectors.
+		//
+		// LWJGL needs the buffer to be direct and native-order. To create such a buffer, we have 3 options:
+		// - Allocate it on the stack (MemoryStack): Most efficient but limited capacity. We must pop the stack after we use the buffer.
+		// - Allocate it dinamically with malloc (MemoryUtil.mallocFloat): Less efficient, large capacity. Needs to be manually freed.
+		// - Allocate it via BufferUtils.createFloatBuffer: Worst efficient, large capacity. The Java Garbage Collector will free the buffer for us.
+		FloatBuffer translations = MemoryUtil.memAllocFloat(200); // Each vector has 2 floats
+		int index = 0;
+		float offset = 0.1f;
+		for(int y = -10;y < 10;y += 2) {
+			for(int x = -10;x < 10;x += 2) {
+				translations.put(index++, (float)x / 10.0f + offset);
+				translations.put(index++, (float)y / 10.0f + offset);
+			}
+		}
+		
+		// Store instance data in an array buffer
+		final int instanceVBO = glGenBuffers();
+		glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+		glBufferData(GL_ARRAY_BUFFER, translations, GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		// Don't forget to free the FloatBuffer!
+		MemoryUtil.memFree(translations);
+
+		final int quadVAO = glGenVertexArrays();
+		final int quadVBO = glGenBuffers();
+		glBindVertexArray(quadVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, QUAD_VERTICES, GL_STATIC_DRAW);
+		// Position
+		glVertexAttribPointer(0, 2, GL_FLOAT, false, 5 * Float.BYTES, 0);
+		glEnableVertexAttribArray(0);
+		// Color
+		glVertexAttribPointer(1, 3, GL_FLOAT, false, 5 * Float.BYTES, 2 * Float.BYTES);
+		glEnableVertexAttribArray(1);
+		// Also set the instance data
+		glEnableVertexAttribArray(2);
+		glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // This attribute comes from a different vertex buffer
+		glVertexAttribPointer(2, 2, GL_FLOAT, false, 2 * Float.BYTES, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glVertexAttribDivisor(2, 1); // Tell OpenGL this is an instanced vertex attribute.		
 
 		// Render loop
 		while(!glfwWindowShouldClose(window)) {
@@ -150,32 +194,12 @@ public class GeometryShaderNormals {
 			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			// Configure transformation matrices
+			// Draw 100 instanced quads
 			shader.use();
-
-			// Update projection matrix if necessary
-			if(updateProjection) {
-				projection.setPerspective((float)Math.toRadians(camera.zoom), (float)windowWidth / (float)windowHeight, 
-						0.1f, 100.0f);
-				shader.setMat4("projection", projection);
-				updateProjection = false;
-			}
-
-			// Camera/view transformations
-			final Matrix4f view = camera.getViewMatrix();
-			shader.setMat4("view", view);
-			shader.setMat4("model", model);
-
-			// Draw model as usual
-			nanosuit.draw(shader);
-
-			normalShader.use();
-			normalShader.setMat4("projection", projection);
-			normalShader.setMat4("view", view);
-			normalShader.setMat4("model", model);
-
-			nanosuit.draw(normalShader);
-
+			glBindVertexArray(quadVAO);
+			glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100); // 100 triangles of 6 vertices each
+			glBindVertexArray(0);
+			
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -183,7 +207,9 @@ public class GeometryShaderNormals {
 		}
 
 		// Deallocate all resources when no longer necessary
-		nanosuit.delete();
+		glDeleteVertexArrays(quadVAO);
+		glDeleteBuffers(quadVBO);
+		glDeleteBuffers(instanceVBO);
 		shader.delete();
 
 		// Clear all allocated resources by GLFW

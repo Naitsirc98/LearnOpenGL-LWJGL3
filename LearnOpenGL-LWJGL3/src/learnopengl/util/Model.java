@@ -86,8 +86,8 @@ public class Model {
 
 	/* Model Data */
 	// Stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
-	private Map<String, Texture> texturesLoaded; 
-	private List<Mesh> meshes;
+	public Map<String, Texture> texturesLoaded; 
+	public List<Mesh> meshes;
 	private String directory;
 	private boolean gammaCorrection;
 

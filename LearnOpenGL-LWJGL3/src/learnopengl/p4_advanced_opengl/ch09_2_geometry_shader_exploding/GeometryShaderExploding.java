@@ -1,4 +1,4 @@
-package learnopengl.p4_advanced_opengl.ch9_2_geometry_shader_exploding;
+package learnopengl.p4_advanced_opengl.ch09_2_geometry_shader_exploding;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
