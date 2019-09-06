@@ -1,11 +1,11 @@
-package learnopengl.p4_advanced_opengl.ch05_2_framebuffers_exercise1;
+package learnopengl.p4_advanced_opengl.ch11_antialiasing_offscreen;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL44.*;
 import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
@@ -26,7 +26,7 @@ import learnopengl.util.Camera;
 import learnopengl.util.Camera.CameraMovement;
 import learnopengl.util.Shader;
 
-public class FramebuffersExercise1 {
+public class AntialiasingOffscreen {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -51,75 +51,61 @@ public class FramebuffersExercise1 {
 
 
 	// Vertex Data
-	private static final float CUBE_VERTICES[] = {
-			// positions          // texture Coords
-			-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-			0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-			0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	private static final float[] CUBE_VERTICES = {
+			// positions       
+			-0.5f, -0.5f, -0.5f,
+			0.5f, -0.5f, -0.5f,
+			0.5f,  0.5f, -0.5f,
+			0.5f,  0.5f, -0.5f,
+			-0.5f,  0.5f, -0.5f,
+			-0.5f, -0.5f, -0.5f,
 
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-			-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+			-0.5f, -0.5f,  0.5f,
+			0.5f, -0.5f,  0.5f,
+			0.5f,  0.5f,  0.5f,
+			0.5f,  0.5f,  0.5f,
+			-0.5f,  0.5f,  0.5f,
+			-0.5f, -0.5f,  0.5f,
 
-			-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-			-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+			-0.5f,  0.5f,  0.5f,
+			-0.5f,  0.5f, -0.5f,
+			-0.5f, -0.5f, -0.5f,
+			-0.5f, -0.5f, -0.5f,
+			-0.5f, -0.5f,  0.5f,
+			-0.5f,  0.5f,  0.5f,
 
-			0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-			0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+			0.5f,  0.5f,  0.5f,
+			0.5f,  0.5f, -0.5f,
+			0.5f, -0.5f, -0.5f,
+			0.5f, -0.5f, -0.5f,
+			0.5f, -0.5f,  0.5f,
+			0.5f,  0.5f,  0.5f,
 
-			-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-			0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-			0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-			0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+			-0.5f, -0.5f, -0.5f,
+			0.5f, -0.5f, -0.5f,
+			0.5f, -0.5f,  0.5f,
+			0.5f, -0.5f,  0.5f,
+			-0.5f, -0.5f,  0.5f,
+			-0.5f, -0.5f, -0.5f,
 
-			-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-			0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-			0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-			-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-			-0.5f, 0.5f, -0.5f, 0.0f, 1.0f
+			-0.5f,  0.5f, -0.5f,
+			0.5f,  0.5f, -0.5f,
+			0.5f,  0.5f,  0.5f,
+			0.5f,  0.5f,  0.5f,
+			-0.5f,  0.5f,  0.5f,
+			-0.5f,  0.5f, -0.5f
 	};
 
-	private static final float PLANE_VERTICES[] = {
-			// positions          // texture Coords (note we set these higher than 1 
-			//(together with GL_REPEAT as texture wrapping mode).
-			// this will cause the floor texture to repeat)
-			5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-			-5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
-			-5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-
-			5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-			-5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-			5.0f, -0.5f, -5.0f,  2.0f, 2.0f								
-	};
-
-	// vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-	// NOTE that this plane is now much smaller and at the top of the screen
-	private static final float[] QUAD_VERTICES = {
+	// Vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+	private static final float QUAD_VERTICES[] = {   
 			// positions   // texCoords
-			-0.3f,  1.0f,  0.0f, 1.0f,
-			-0.3f,  0.7f,  0.0f, 0.0f,
-			0.3f,  0.7f,  1.0f, 0.0f,
+			-1.0f,  1.0f,  0.0f, 1.0f,
+			-1.0f, -1.0f,  0.0f, 0.0f,
+			1.0f, -1.0f,  1.0f, 0.0f,
 
-			-0.3f,  1.0f,  0.0f, 1.0f,
-			0.3f,  0.7f,  1.0f, 0.0f,
-			0.3f, 1.0f, 1.0f, 1.0f
+			-1.0f,  1.0f,  0.0f, 1.0f,
+			1.0f, -1.0f,  1.0f, 0.0f,
+			1.0f,  1.0f,  1.0f, 1.0f
 	};
 
 
@@ -200,19 +186,14 @@ public class FramebuffersExercise1 {
 		glEnable(GL_DEPTH_TEST);
 
 		// Build and compile our shader program
-		final String dir = FramebuffersExercise1.class.getResource(".").getFile();
-		Shader shader = new Shader(dir+"framebuffers.vs", dir+"framebuffers.fs");
-		Shader screenShader = new Shader(dir+"framebuffers_screen.vs", dir+"framebuffers_screen.fs");
+		final String dir = AntialiasingOffscreen.class.getResource(".").getFile();
+		Shader shader = new Shader(dir+"anti_aliasing.vs", dir+"anti_aliasing.fs");
+		Shader screenShader = new Shader(dir+"aa_post.vs", dir+"aa_post.fs");
 
 		// Cube
 		final int cubeVAO = glGenVertexArrays();
 		final int cubeVBO = glGenBuffers();
 		setUpVertexData(cubeVAO, cubeVBO, CUBE_VERTICES);
-
-		// Plane
-		final int planeVAO = glGenVertexArrays();
-		final int planeVBO = glGenBuffers();
-		setUpVertexData(planeVAO, planeVBO, PLANE_VERTICES);
 
 		// Quad
 		final int quadVAO = glGenVertexArrays();
@@ -227,10 +208,22 @@ public class FramebuffersExercise1 {
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 
-		// Load textures
-		final int cubeTexture = loadTexture("resources/textures/marble.jpg", false);
-		final int floorTexture = loadTexture("resources/textures/metal.png", false);
+		// Configure MSAA framebuffer
+		final int framebuffer = glGenFramebuffers();
+		final int colorBufferTextureMSAA = glGenTextures();
+		final int rbo = glGenRenderbuffers();
+		final int samples = 4;
+		createMSAAFramebuffer(framebuffer, colorBufferTextureMSAA, rbo, samples);
 
+		// Configure second post processing framebuffer
+		final int intermediateFBO = glGenFramebuffers();
+		final int screenTexture = glGenTextures();
+		createPostProcessingFramebuffer(intermediateFBO, screenTexture);
+
+		// Shader configuration
+		screenShader.use();
+		screenShader.setInt("screenTexture", 0);
+		
 		// Pass projection matrix to shader (as projection matrix rarely changes there's no need to do this per frame)
 		// ** This is true as long as you don't change the window size!
 		// That's why I check every frame if the projection matrix has to be changed
@@ -238,34 +231,6 @@ public class FramebuffersExercise1 {
 
 		// Create the model matrix before enter the loop to avoid calling new every frame
 		Matrix4f model = new Matrix4f();
-
-		// Shader configuration
-		shader.use();
-		shader.setInt("texture1", 0);
-		screenShader.use();
-		screenShader.setInt("screenTexture", 0);
-
-		// FrameBuffer configuration
-		final int framebuffer = glGenFramebuffers();
-		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-		// Create a color attachment texture
-		final int colorBufferTexture = glGenTextures();
-		glBindTexture(GL_TEXTURE_2D, colorBufferTexture);
-		nglTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBufferTexture, 0);
-		// Create a Renderbuffer object for depth and stencil attachment (we won't be sampling these)
-		final int rbo = glGenRenderbuffers();
-		glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-		// Use a single renderbuffer object for both depth and stencil
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // Actually attach it
-		// Now that we actually created the framebuffer and added all attachments we want to check if it is actually complete
-		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-			throw new RuntimeException("Framebuffer is not complete!");
-		}
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		// Render loop
 		while(!glfwWindowShouldClose(window)) {
@@ -278,99 +243,52 @@ public class FramebuffersExercise1 {
 			// Input
 			processInput(window);
 
-			// First render pass: mirror texture
-			// Bind to framebuffer and draw to color texture as we normally
-			// would, but with the view camera reversed
-
-			// Bind to framebuffer and draw scene as we normally would to color texture 
-			glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-			glEnable(GL_DEPTH_TEST); // Enable depth testing (it is disabled for rendering screen-space quad)
-
-
-			// Make sure we clear the framebuffer's content
+			// Clear screen
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			shader.use();
-
-			// Camera/view transformations
-			camera.yaw += 180.0f; // Rotate the camera's yaw 180 degrees around
-			camera.pitch += 180.0f; // Rotate the camera's pitch 180 degrees around
-			// Call this to make sure it updates its camera vectors, note that we disabled pitch constraint
-			camera.processMouseMovement(0, 0, false); 
-			final Matrix4f view = camera.getViewMatrix();
-			// Reset the camera back to its original orientation
-			camera.yaw -= 180.0f;
-			camera.pitch -= 180.0f;
-			// Call this to make sure it updates its camera vectors, note that we disabled pitch constraint
-			camera.processMouseMovement(0, 0, true); 
-			shader.setMat4("view", view);
-
+			
+			// 1. Draw scene as normal in multisampled buffers
+			glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glEnable(GL_DEPTH_TEST);
+			
 			// Update projection matrix if necessary
 			if(updateProjection) {
 				projection.setPerspective((float)Math.toRadians(camera.zoom), (float)windowWidth / (float)windowHeight, 
 						0.1f, 100.0f);
-				shader.setMat4("projection", projection);
 				updateProjection = false;
 			}
+			final Matrix4f view = camera.getViewMatrix();
 
-			// Cubes
+			// Set transformation matrices
+			shader.use();
+			shader.setMat4("projection", projection);
+			shader.setMat4("view", view);
+			shader.setMat4("model", model);
+			
+			// Draw cube
 			glBindVertexArray(cubeVAO);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, cubeTexture);
-			// Cube 1
-			model.translation(-1.0f, 0.0f, -1.0f);
-			shader.setMat4("model", model);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-			// Cube 2
-			model.translation(2.0f, 0.0f, 0.0f);
-			shader.setMat4("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-
-			// Floor
-			glBindVertexArray(planeVAO);
-			glBindTexture(GL_TEXTURE_2D, floorTexture);
-			shader.setMat4("model", model.identity());
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-
-			glBindVertexArray(0);
-
-			// Second render pass: draw as normal
+			
+			// 2. Now blit multisampled buffers to normal colorbuffer of intermediate framebuffer. Image is stored into screenTexture
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer); // Source
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO); // Destination
+			glBlitFramebuffer(0, 0, windowWidth, windowHeight, 0, 0, windowWidth, windowHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			
+			// 3. Now render quad with scene's visuals as its texture image
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			shader.setMat4("view", camera.getViewMatrix());			
-
-			// Cubes
-			glBindVertexArray(cubeVAO);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, cubeTexture);
-			// Cube 1
-			model.translation(-1.0f, 0.0f, -1.0f);
-			shader.setMat4("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-			// Cube 2
-			model.translation(2.0f, 0.0f, 0.0f);
-			shader.setMat4("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-
-			// Floor
-			glBindVertexArray(planeVAO);
-			glBindTexture(GL_TEXTURE_2D, floorTexture);
-			shader.setMat4("model", model.identity());
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-
-			// Now draw the mirror quad with the screen texture
-			glDisable(GL_DEPTH_TEST); // Disable depth test so screen-space quad isn't discarded due to depth test
-
+			glDisable(GL_DEPTH_TEST);
+			
+			// Draw screen quad
 			screenShader.use();
 			glBindVertexArray(quadVAO);
-			// Use the color attachment texture as the texture of the quad plane
-			glBindTexture(GL_TEXTURE_2D, colorBufferTexture);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, screenTexture);
 			glDrawArrays(GL_TRIANGLES, 0, 6);
-
+			
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -379,22 +297,56 @@ public class FramebuffersExercise1 {
 
 		// Deallocate all resources when no longer necessary
 		glDeleteVertexArrays(cubeVAO);
-		glDeleteVertexArrays(planeVAO);
 		glDeleteVertexArrays(quadVAO);
 		glDeleteBuffers(cubeVBO);
-		glDeleteBuffers(planeVBO);
-		glDeleteBuffers(quadVBO);
-		glDeleteTextures(cubeTexture);
-		glDeleteTextures(floorTexture);
-		glDeleteTextures(colorBufferTexture);
+		glDeleteBuffers(quadVAO);
+		glDeleteTextures(colorBufferTextureMSAA);
+		glDeleteTextures(screenTexture);
 		shader.delete();
 		screenShader.delete();
 		glDeleteFramebuffers(framebuffer);
+		glDeleteFramebuffers(intermediateFBO);
 		glDeleteRenderbuffers(rbo);
 
 		// Clear all allocated resources by GLFW
 		glfwTerminate();
 
+	}
+
+	private static void createPostProcessingFramebuffer(int intermediateFBO, int screenTexture) {
+
+		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO);
+		// Create a color texture attachment
+		glBindTexture(GL_TEXTURE_2D, screenTexture);
+		nglTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0); // We only need a color buffer
+
+		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			throw new RuntimeException("Framebuffer is not complete!");
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	private static void createMSAAFramebuffer(int framebuffer, int colorBufferTextureMSAA, int rbo, int samples) {
+
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+		// Create a color attachment texture
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, colorBufferTextureMSAA);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB, windowWidth, windowHeight, true);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, colorBufferTextureMSAA, 0);
+		// Create a (also multisampled) renderbuffer object for depth and stencil attachments
+		glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+		// Use a single renderbuffer object for both depth and stencil
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			throw new RuntimeException("Framebuffer is not complete!");
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 	private static void setUpVertexData(int vao, int vbo, float[] vertexData) {
@@ -405,12 +357,8 @@ public class FramebuffersExercise1 {
 		glBufferData(GL_ARRAY_BUFFER, vertexData, GL_STATIC_DRAW);
 
 		// Position
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * Float.BYTES, 0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 3 * Float.BYTES, 0);
 		glEnableVertexAttribArray(0);
-
-		// Texture coordinates
-		glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
-		glEnableVertexAttribArray(1);
 
 		// Note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
 		glBindBuffer(GL_ARRAY_BUFFER, 0); 

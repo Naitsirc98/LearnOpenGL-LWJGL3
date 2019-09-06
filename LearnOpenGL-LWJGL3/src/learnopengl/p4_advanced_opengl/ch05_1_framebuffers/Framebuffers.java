@@ -343,8 +343,10 @@ public class Framebuffers {
 		// Deallocate all resources when no longer necessary
 		glDeleteVertexArrays(cubeVAO);
 		glDeleteVertexArrays(planeVAO);
+		glDeleteVertexArrays(quadVAO);
 		glDeleteBuffers(cubeVBO);
 		glDeleteBuffers(planeVBO);
+		glDeleteBuffers(quadVBO);
 		glDeleteTextures(cubeTexture);
 		glDeleteTextures(floorTexture);
 		glDeleteTextures(colorBufferTexture);
