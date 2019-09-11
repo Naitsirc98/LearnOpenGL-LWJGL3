@@ -1,4 +1,4 @@
-package learnopengl.p5_advanced_lighting.ch03_1_shadow_mapping_depth;
+package learnopengl.p5_advanced_lighting.ch03_2_1_point_shadows;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -12,6 +12,7 @@ import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.logging.Logger;
 
@@ -22,6 +23,7 @@ import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
 import org.lwjgl.glfw.GLFWScrollCallbackI;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
@@ -29,7 +31,7 @@ import learnopengl.util.Camera;
 import learnopengl.util.Camera.CameraMovement;
 import learnopengl.util.Shader;
 
-public class ShadowMappingDepth {
+public class PointShadows {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -51,6 +53,10 @@ public class ShadowMappingDepth {
 	// Timing
 	private static float deltaTime = 0.0f; // Time between current frame and last frame
 	private static float lastFrame = 0.0f;
+
+	// Shadows
+	private static boolean shadows = true;
+	private static boolean shadowsKeyPressed = false;
 
 
 	// Vertex Data
@@ -96,29 +102,8 @@ public class ShadowMappingDepth {
 			1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
 			1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
 			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-			-1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f // bottom-left       
+			-1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f // bottom-left      
 	};
-
-	// Vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-	private static final float PLANE_VERTICES[] = {   
-	        // positions            // normals         // texcoords
-	         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-	        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-	        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-
-	         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-	        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-	         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
-	};
-
-	private static final float[] QUAD_VERTICES = {
-			// positions        // texture Coords
-			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-			1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-			1.0f, -1.0f, 0.0f, 1.0f, 0.0f,	
-	};
-
 
 	// ============== Callbacks ==============
 
@@ -192,40 +177,22 @@ public class ShadowMappingDepth {
 			glfwTerminate();
 			return;
 		}
+		
+		GLUtil.setupDebugMessageCallback();
 
 		// Configure global OpenGL state
 		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
 
 		// Build and compile our shader program
-		final String dir = ShadowMappingDepth.class.getResource(".").getFile();
-		Shader simpleDepthShader = new Shader(dir+"shadow_mapping_depth.vs", dir+"shadow_mapping_depth.fs");
-		Shader debugDepthQuadShader = new Shader(dir+"debug_quad.vs", dir+"debug_quad.fs");
+		final String dir = PointShadows.class.getResource(".").getFile();
+		Shader shader = new Shader(dir+"point_shadows.vs", dir+"point_shadows.fs");
+		Shader simpleDepthShader = new Shader(dir+"point_shadows_depth.vs", dir+"point_shadows_depth.fs", dir+"point_shadows_depth.gs");
 
 		// Cube
 		final int cubeVAO = glGenVertexArrays();
 		final int cubeVBO = glGenBuffers();
 		setUpVertexData(cubeVAO, cubeVBO, CUBE_VERTICES);
-
-		// Plane
-		final int planeVAO = glGenVertexArrays();
-		final int planeVBO = glGenBuffers();
-		setUpVertexData(planeVAO, planeVBO, PLANE_VERTICES);
-
-		// Quad
-		final int quadVAO = glGenVertexArrays();
-		final int quadVBO = glGenBuffers();
-		glBindVertexArray(quadVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-		glBufferData(GL_ARRAY_BUFFER, QUAD_VERTICES, GL_STATIC_DRAW);
-		// Position
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * Float.BYTES, 0L);
-		// Texture coords
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
 
 		// Load textures
 		final int woodTexture = loadTexture("resources/textures/wood.png", false);
@@ -236,43 +203,56 @@ public class ShadowMappingDepth {
 
 		final int depthMapFBO = glGenFramebuffers();
 
-		// Create depth texture
-		final int depthMap = glGenTextures();
-		glBindTexture(GL_TEXTURE_2D, depthMap);
-		nglTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		// Create depth cubemap texture
+		final int depthCubemap = glGenTextures();
+		glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+		for(int i = 0;i < 6;i++) {
+			nglTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight,
+					0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		}
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 		// Attach depth texture as FBO's depth buffer
 		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
 		// Tell OpenGL we don't want a color buffer
 		glDrawBuffer(GL_NONE);
 		glReadBuffer(GL_NONE);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		// Shader configuration
-		debugDepthQuadShader.use();
-		debugDepthQuadShader.setInt("depthMap", 0);
+		shader.use();
+		shader.setInt("diffuseTexture", 0);
+		shader.setInt("depthMap", 1);
 
 		// Lighting info
-		final Vector3f lightPos = new Vector3f(-2.0f, 4.0f, -1.0f);
+		final Vector3f lightPos = new Vector3f(0.0f);
+
+		// Pass projection matrix to shader (as projection matrix rarely changes there's no need to do this per frame)
+		// ** This is true as long as you don't change the window size!
+		// That's why I check every frame if the projection matrix has to be changed
+		Matrix4f projection = new Matrix4f();
 
 		// Create the model matrix before enter the loop to avoid calling new every frame
 		Matrix4f model = new Matrix4f();
 
-		// Same with the light's transformation matrices
 		final float nearPlane = 1.0f;
-		final float farPlane = 7.5f;
-		Matrix4f lightSpaceMatrix;
-		// Lets calculate the light's projection-view matrix
-		// Use brackets so all the temp variables we declare inside will be released when we go out of the scope
-		{
-			final Matrix4f lightProjection = new Matrix4f().ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearPlane, farPlane);
-			final Matrix4f lightView = new Matrix4f().lookAt(lightPos, new Vector3f(0.0f), new Vector3f(0.0f, 1.0f, 0.0f));
-			lightSpaceMatrix = lightProjection.mul(lightView);
-		}
+		final float farPlane = 25.0f;
+		final float lightFOV = (float)Math.toRadians(90.0f); // 90 to make sure it covers an entire cubemap face
+
+		Matrix4f shadowProjection = new Matrix4f().perspective(lightFOV, (float)shadowWidth/(float)shadowHeight, nearPlane, farPlane);
+		
+		Matrix4f[] shadowTransforms = {
+				new Matrix4f(),
+				new Matrix4f(),
+				new Matrix4f(),
+				new Matrix4f(),
+				new Matrix4f(),
+				new Matrix4f()
+		};
 
 		// Render loop
 		while(!glfwWindowShouldClose(window)) {
@@ -285,34 +265,60 @@ public class ShadowMappingDepth {
 			// Input
 			processInput(window);
 
+			// Change light position over time
+			lightPos.z = (float)Math.sin(glfwGetTime() * 0.5) * 3.0f;
+
 			// Clear screen
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			// 1. Render depth of scene to texture (from light's perspective)
-			simpleDepthShader.use();
-			simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-			// Render scene from light's point of view
+			// Update depth cubemap transformations matrices
+			shadowTransforms[0].setLookAt(lightPos, lightPos.add(1.0f,  0.0f,  0.0f, new Vector3f()), new Vector3f(0.0f, -1.0f,  0.0f));
+			shadowTransforms[1].setLookAt(lightPos, lightPos.add(-1.0f,  0.0f,  0.0f, new Vector3f()), new Vector3f(0.0f, -1.0f,  0.0f));
+			shadowTransforms[2].setLookAt(lightPos, lightPos.add(0.0f,  1.0f,  0.0f, new Vector3f()), new Vector3f(0.0f,  0.0f,  1.0f));
+			shadowTransforms[3].setLookAt(lightPos, lightPos.add(0.0f, -1.0f,  0.0f, new Vector3f()), new Vector3f(0.0f,  0.0f, -1.0f));
+			shadowTransforms[4].setLookAt(lightPos, lightPos.add(0.0f,  0.0f,  1.0f, new Vector3f()), new Vector3f(0.0f, -1.0f,  0.0f));
+			shadowTransforms[5].setLookAt(lightPos, lightPos.add(0.0f, 0.0f, -1.0f, new Vector3f()),  new Vector3f(0.0f, -1.0f, 0.0f)); 
+
+			// Convert them to projection-view matrices
+			for(Matrix4f lightView : shadowTransforms) {
+				shadowProjection.mul(lightView, lightView);
+			}
+
+			// Render scene to depth cubemap
 			glViewport(0, 0, shadowWidth, shadowHeight);
 			glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 			glClear(GL_DEPTH_BUFFER_BIT);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, woodTexture);
-			renderScene(simpleDepthShader, planeVAO, cubeVAO, model);
+			simpleDepthShader.use();
+			simpleDepthShader.setMat4Array("shadowMatrices", shadowTransforms);
+			simpleDepthShader.setFloat("far_plane", farPlane);
+			simpleDepthShader.setVec3("lightPos", lightPos);
+			renderScene(simpleDepthShader, cubeVAO, model);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
-			// Reset viewport
+			// 2. Render scene as normal
 			glViewport(0, 0, windowWidth, windowHeight);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			
-			// Render depth map onto the quad for visual debugging
-			debugDepthQuadShader.use();
-			debugDepthQuadShader.setFloat("nearPlane", nearPlane);
-			debugDepthQuadShader.setFloat("farPlane", farPlane);
+			shader.use();
+			// Update projection matrix if necessary
+			if(updateProjection) {
+				projection.setPerspective((float)Math.toRadians(camera.zoom), (float)windowWidth / (float)windowHeight, 
+						0.1f, 100.0f);
+				updateProjection = false;
+			}
+			shader.setMat4("projection", projection);
+			shader.setMat4("view", camera.getViewMatrix());
+			// Set light uniforms
+			shader.setVec3("lightPos", lightPos);
+			shader.setVec3("viewPos", camera.position);
+			shader.setBool("shadows", shadows); // Enable/disable shadows by pressing 'SPACE'
+			shader.setFloat("far_plane", farPlane);
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, depthMap);
-			renderQuad(quadVAO);
+			glBindTexture(GL_TEXTURE_2D, woodTexture);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+			renderScene(shader, cubeVAO, model);
 
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
@@ -322,13 +328,11 @@ public class ShadowMappingDepth {
 
 		// Deallocate all resources when no longer necessary
 		glDeleteVertexArrays(cubeVAO);
-		glDeleteVertexArrays(quadVAO);
 		glDeleteBuffers(cubeVBO);
-		glDeleteBuffers(quadVAO);
 		glDeleteTextures(woodTexture);
-		glDeleteTextures(depthMap);
+		glDeleteTextures(depthCubemap);
+		shader.delete();
 		simpleDepthShader.delete();
-		debugDepthQuadShader.delete();
 		glDeleteFramebuffers(depthMapFBO);
 
 		// Clear all allocated resources by GLFW
@@ -336,33 +340,53 @@ public class ShadowMappingDepth {
 
 	}
 
-	private static void renderQuad(int quadVAO) {
-		glBindVertexArray(quadVAO);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		glBindVertexArray(0);
-	}
+	private static void renderScene(Shader shader, int cubeVAO, Matrix4f model) {
 
-	private static void renderScene(Shader shader, int planeVAO, int cubeVAO, Matrix4f model) {
-		// Floor 
-		shader.setMat4("model", model.identity());
-		glBindVertexArray(planeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		// Room cube
+		model.scaling(5.0f);
+		shader.setMat4("model", model);
+		// Note that we disable culling here since we render 'inside'
+		// the cube instead of the usual 'outside' which throws off the normal culling methods.
+		glDisable(GL_CULL_FACE);
+		// A small little hack to invert normals when drawing cube from the inside so lighting still works.
+		shader.setInt("reverse_normals", 1);
+		renderCube(cubeVAO);
+		// And of course disable it
+		shader.setInt("reverse_normals", 0);
+		glEnable(GL_CULL_FACE);
+		
 		// Cubes
-		model.translate(0.0f, 1.5f, 0.0f);
+		model.translation(4.0f, -3.5f, 0.0f);
 		model.scale(0.5f);
 		shader.setMat4("model", model);
 		renderCube(cubeVAO);
-		model.translation(2.0f, 0.0f, 1.0f);
+
+		model.translation(2.0f, 3.0f, 1.0f);
+		model.scale(0.75f);
+		shader.setMat4("model", model);
+		renderCube(cubeVAO);
+		
+		model.translation(-3.0f, -1.0f, 0.0f);
 		model.scale(0.5f);
 		shader.setMat4("model", model);
 		renderCube(cubeVAO);
-		model.translation(-1.0f, 0.0f, 2.0f);
+		
+		model.translation(-1.5f, 1.0f, 1.5f);
+		model.scale(0.5f);
+		shader.setMat4("model", model);
+		renderCube(cubeVAO);
+		
+		model.translation(-1.5f, 2.0f, -3.0f);
 		model.rotate((float)Math.toRadians(60.0f), new Vector3f(1.0f, 0.0f, 1.0f).normalize());
-		model.scale(0.25f);
+		model.scale(0.75f);
 		shader.setMat4("model", model);
 		renderCube(cubeVAO);
+
 	}
 
+	/**
+	 * Renders a 1x1 3D cube in NDC.
+	 * */
 	private static void renderCube(int cubeVAO) {
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -483,6 +507,15 @@ public class ShadowMappingDepth {
 
 		if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
 			camera.processKeyboard(CameraMovement.RIGHT, deltaTime);
+		}
+
+		if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !shadowsKeyPressed) {
+			shadows = !shadows;
+			shadowsKeyPressed = true;
+		}
+
+		if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE) {
+			shadowsKeyPressed = false;
 		}
 
 		camera.movementSpeed = speed;

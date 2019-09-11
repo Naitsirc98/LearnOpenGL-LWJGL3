@@ -1,4 +1,4 @@
-package learnopengl.p5_advanced_lighting.ch03_3_shadow_mapping;
+package learnopengl.p5_advanced_lighting.ch03_1_3_shadow_mapping;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;

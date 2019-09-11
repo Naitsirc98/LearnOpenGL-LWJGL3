@@ -1,20 +1,24 @@
 package learnopengl.util;
 
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL33.*;
+import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL32.*;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.logging.Logger;
 
 import org.joml.Matrix3fc;
+import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector2fc;
 import org.joml.Vector3fc;
 import org.joml.Vector4fc;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 
 /*
  * Third and last Shader class approach
@@ -97,6 +101,16 @@ public class Shader {
 	public void setMat4(String name, Matrix4fc matrix) {
 		try(MemoryStack stack = MemoryStack.stackPush()) {
 			glUniformMatrix4fv(glGetUniformLocation(id, name), false, matrix.get(stack.mallocFloat(16)));
+		}
+	}
+	
+	public void setMat4Array(String name, Matrix4f[] array) {
+		try(MemoryStack stack = MemoryStack.stackPush()) {
+			FloatBuffer buffer = stack.mallocFloat(16 * array.length);
+			for(int i = 0;i < array.length;i++) {
+				array[i].get(i*16, buffer);
+			}
+			nglUniformMatrix4fv(glGetUniformLocation(id, name), array.length, false, MemoryUtil.memAddress(buffer));
 		}
 	}
 	

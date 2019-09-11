@@ -1,4 +1,4 @@
-package learnopengl.p5_advanced_lighting.ch03_2_shadow_mapping_base;
+package learnopengl.p5_advanced_lighting.ch03_1_1_shadow_mapping_depth;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -29,7 +29,7 @@ import learnopengl.util.Camera;
 import learnopengl.util.Camera.CameraMovement;
 import learnopengl.util.Shader;
 
-public class ShadowMappingBase {
+public class ShadowMappingDepth {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -197,8 +197,7 @@ public class ShadowMappingBase {
 		glEnable(GL_DEPTH_TEST);
 
 		// Build and compile our shader program
-		final String dir = ShadowMappingBase.class.getResource(".").getFile();
-		Shader shader = new Shader(dir+"shadow_mapping.vs", dir+"shadow_mapping.fs");
+		final String dir = ShadowMappingDepth.class.getResource(".").getFile();
 		Shader simpleDepthShader = new Shader(dir+"shadow_mapping_depth.vs", dir+"shadow_mapping_depth.fs");
 		Shader debugDepthQuadShader = new Shader(dir+"debug_quad.vs", dir+"debug_quad.fs");
 
@@ -254,19 +253,11 @@ public class ShadowMappingBase {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		// Shader configuration
-		shader.use();
-		shader.setInt("diffuseTexture", 0);
-		shader.setInt("shadowMap", 1);
 		debugDepthQuadShader.use();
 		debugDepthQuadShader.setInt("depthMap", 0);
 
 		// Lighting info
 		final Vector3f lightPos = new Vector3f(-2.0f, 4.0f, -1.0f);
-		
-		// Pass projection matrix to shader (as projection matrix rarely changes there's no need to do this per frame)
-		// ** This is true as long as you don't change the window size!
-		// That's why I check every frame if the projection matrix has to be changed
-		Matrix4f projection = new Matrix4f();
 
 		// Create the model matrix before enter the loop to avoid calling new every frame
 		Matrix4f model = new Matrix4f();
@@ -311,35 +302,17 @@ public class ShadowMappingBase {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
-			// 2. Render scene as normal using the generated depth/shadow map
+			// Reset viewport
 			glViewport(0, 0, windowWidth, windowHeight);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			shader.use();
-			// Update projection matrix if necessary
-			if(updateProjection) {
-				projection.setPerspective((float)Math.toRadians(camera.zoom), (float)windowWidth / (float)windowHeight, 
-						0.1f, 100.0f);
-				updateProjection = false;
-			}
-			shader.setMat4("projection", projection);
-			shader.setMat4("view", camera.getViewMatrix());
-			// Set light uniforms
-			shader.setVec3("viewPos", camera.position);
-			shader.setVec3("lightPos", lightPos);
-			shader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, woodTexture);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, depthMap);
-			renderScene(shader, planeVAO, cubeVAO, model);
 			
 			// Render depth map onto the quad for visual debugging
-			// debugDepthQuadShader.use();
-			// debugDepthQuadShader.setFloat("nearPlane", nearPlane);
-			// debugDepthQuadShader.setFloat("farPlane", farPlane);
-			// glActiveTexture(GL_TEXTURE0);
-			// glBindTexture(GL_TEXTURE_2D, depthMap);
-			// renderQuad(quadVAO);
+			debugDepthQuadShader.use();
+			debugDepthQuadShader.setFloat("nearPlane", nearPlane);
+			debugDepthQuadShader.setFloat("farPlane", farPlane);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, depthMap);
+			renderQuad(quadVAO);
 
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
@@ -354,7 +327,6 @@ public class ShadowMappingBase {
 		glDeleteBuffers(quadVAO);
 		glDeleteTextures(woodTexture);
 		glDeleteTextures(depthMap);
-		shader.delete();
 		simpleDepthShader.delete();
 		debugDepthQuadShader.delete();
 		glDeleteFramebuffers(depthMapFBO);
