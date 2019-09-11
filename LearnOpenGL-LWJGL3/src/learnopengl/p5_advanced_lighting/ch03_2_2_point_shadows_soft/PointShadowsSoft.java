@@ -178,8 +178,6 @@ public class PointShadowsSoft {
 			return;
 		}
 		
-		GLUtil.setupDebugMessageCallback();
-
 		// Configure global OpenGL state
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);

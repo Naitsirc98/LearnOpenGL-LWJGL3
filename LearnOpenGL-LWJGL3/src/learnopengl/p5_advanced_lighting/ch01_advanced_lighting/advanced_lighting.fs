@@ -13,13 +13,14 @@ uniform vec3 viewPos;
 uniform bool blinn;
 
 void main()
-{           
+{        
     vec3 color = texture(floorTexture, fs_in.TexCoords).rgb;
     // ambient
     vec3 ambient = 0.05 * color;
     // diffuse
     vec3 lightDir = normalize(lightPos - fs_in.FragPos);
     vec3 normal = normalize(fs_in.Normal);
+    normal = gl_FrontFacing ? -normal : normal; // Extra: just lit the front side of the quad
     float diff = max(dot(lightDir, normal), 0.0);
     vec3 diffuse = diff * color;
     // specular
