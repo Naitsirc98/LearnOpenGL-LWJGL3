@@ -199,7 +199,7 @@ public class Framebuffers {
 		glEnable(GL_DEPTH_TEST);
 
 		// Build and compile our shader program
-		final String dir = FramebuffersExercise1.class.getResource(".").getFile();
+		final String dir = Framebuffers.class.getResource(".").getFile();
 		Shader shader = new Shader(dir+"framebuffers.vs", dir+"framebuffers.fs");
 		Shader screenShader = new Shader(dir+"framebuffers_screen.vs", dir+"framebuffers_screen.fs");
 
