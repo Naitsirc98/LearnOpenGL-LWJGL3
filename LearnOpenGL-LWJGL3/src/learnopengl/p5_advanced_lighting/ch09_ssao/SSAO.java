@@ -1,4 +1,4 @@
-package learnopengl.p5_advanced_lighting.ch08_2_deferred_shading_volumes;
+package learnopengl.p5_advanced_lighting.ch09_ssao;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -11,8 +11,8 @@ import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.function.Function;
 import java.util.logging.Logger;
 
 import org.joml.Matrix4f;
@@ -32,7 +32,7 @@ import learnopengl.util.Camera.CameraMovement;
 import learnopengl.util.Model;
 import learnopengl.util.Shader;
 
-public class DeferredShadingVolumes {
+public class SSAO {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -101,7 +101,6 @@ public class DeferredShadingVolumes {
 			-1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f // bottom-left        
 	};
 
-
 	private static final float[] QUAD_VERTICES = {
 			// positions        // texture Coords
 			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
@@ -143,7 +142,6 @@ public class DeferredShadingVolumes {
 		camera.processMouseScroll((float)yoffset);
 		updateProjection = true;
 	};
-
 
 	public static void main(String[] args) {
 
@@ -188,30 +186,19 @@ public class DeferredShadingVolumes {
 		glEnable(GL_DEPTH_TEST);
 
 		// Build and compile our shader program
-		final String dir = DeferredShadingVolumes.class.getResource(".").getFile();
-		Shader shaderGeometryPass = new Shader(dir+"g_buffer.vs", dir+"g_buffer.fs");
-		Shader shaderLightingPass = new Shader(dir+"deferred_shading.vs", dir+"deferred_shading.fs");
-		Shader shaderLightBox = new Shader(dir+"deferred_light_box.vs", dir+"deferred_light_box.fs");
-
-		// Load models
-		final Model nanosuit = new Model("resources/objects/nanosuit/nanosuit.obj");
-
-		final Vector3fc[] objectPositions = {
-				new Vector3f(-3.0f,  -3.0f, -3.0f),
-				new Vector3f( 0.0f,  -3.0f, -3.0f),
-				new Vector3f( 3.0f,  -3.0f, -3.0f),
-				new Vector3f(-3.0f,  -3.0f,  0.0f),
-				new Vector3f( 0.0f,  -3.0f,  0.0f),
-				new Vector3f( 3.0f,  -3.0f,  0.0f),
-				new Vector3f(-3.0f,  -3.0f,  3.0f),
-				new Vector3f( 0.0f,  -3.0f,  3.0f),
-				new Vector3f( 3.0f,  -3.0f,  3.0f)
-		};
+		final String dir = SSAO.class.getResource(".").getFile();
+		Shader shaderGeometryPass = new Shader(dir+"ssao_geometry.vs", dir+"ssao_geometry.fs");
+		Shader shaderLightingPass = new Shader(dir+"ssao.vs", dir+"ssao_lighting.fs");
+		Shader shaderSSAO = new Shader(dir+"ssao.vs", dir+"ssao.fs");
+		Shader shaderSSAOBlur = new Shader(dir+"ssao.vs", dir+"ssao_blur.fs");
 
 		// Cube
 		final int cubeVAO = glGenVertexArrays();
 		final int cubeVBO = glGenBuffers();
 		setUpVertexData(cubeVAO, cubeVBO, CUBE_VERTICES);
+
+		// Load model
+		final Model nanosuit = new Model("resources/objects/nanosuit/nanosuit.obj");
 
 		// Quad
 		final int quadVAO = glGenVertexArrays();
@@ -248,13 +235,12 @@ public class DeferredShadingVolumes {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
 		// Color + specular color buffer
-		final int gAlbedoSpec = glGenTextures();
-		glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+		final int gAlbedo = glGenTextures();
+		glBindTexture(GL_TEXTURE_2D, gAlbedo);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
-
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedo, 0);
 		// Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
 		final int[] attachments = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
 		glDrawBuffers(attachments);
@@ -271,56 +257,96 @@ public class DeferredShadingVolumes {
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		// Lighting info
-		final int numberOfLights = 32;
-		Vector3fc[] lightPositions = new Vector3fc[numberOfLights];
-		Vector3fc[] lightColors = new Vector3fc[numberOfLights];
-		Random rand = new Random(13);
 
-		for(int i = 0;i < numberOfLights;i++) {
-			// Calculate slightly random offsets
-			final float x = rand.nextFloat() * 6 - 3;
-			final float y = rand.nextFloat() * 6 - 4;
-			final float z = rand.nextFloat() * 6 - 3;
-			lightPositions[i] = new Vector3f(x, y, z);
-			// Also calculate a random color (values between 0.5 and 1.0)
-			final float red = rand.nextFloat() / 2 + 0.5f;
-			final float green = rand.nextFloat() / 2 + 0.5f;
-			final float blue = rand.nextFloat() / 2 + 0.5f;
-			lightColors[i] = new Vector3f(red, green, blue); 
+		// Also create framebuffer to hold SSAO processing stage
+		final int ssaoFBO = glGenFramebuffers();
+		glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+		final int ssaoColorBuffer = glGenTextures();
+		// SSAO color buffer
+		glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, windowWidth, windowHeight, 0, GL_RGB, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBuffer, 0);
+		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			throw new RuntimeException("Framebuffer is not complete");
+		}
+		// and blur stage
+		final int ssaoBlurFBO = glGenFramebuffers();
+		final int ssaoColorBufferBlur = glGenTextures();
+		glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+		glBindTexture(GL_TEXTURE_2D, ssaoColorBufferBlur);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, windowWidth, windowHeight, 0, GL_RGB, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBufferBlur, 0);
+		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			throw new RuntimeException("Framebuffer is not complete");
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// Generate sample kernel
+		Random rand = new Random(System.nanoTime());
+		Vector3fc[] ssaoKernel = new Vector3fc[64];
+
+		for(int i = 0;i < ssaoKernel.length;i++) {
+
+			Vector3f sample = new Vector3f(rand.nextFloat() * 2 - 1, rand.nextFloat() * 2 - 1, rand.nextFloat());
+			sample.normalize();
+			sample.mul(rand.nextFloat());
+
+			float scale = (float)i / 64.0f;
+
+			scale = lerp(0.1f, 1.0f, scale * scale);
+
+			sample.mul(scale);
+
+			ssaoKernel[i] = sample;
 		}
 
+		// Generate noise texture
+		final int noiseTexture = glGenTextures();
+		glBindTexture(GL_TEXTURE_2D, noiseTexture);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		try(MemoryStack stack = MemoryStack.stackPush()) {
+
+			FloatBuffer noiseTextureData = stack.mallocFloat(16 * 3);
+
+			for(int i = 0;i < noiseTextureData.capacity();i+=3) {
+				// Rotate around z axis
+				noiseTextureData.put(i, rand.nextFloat() * 2 - 1);
+				noiseTextureData.put(i+1, rand.nextFloat() * 2 - 1);
+				noiseTextureData.put(i+2, 0.0f);
+			}
+
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 4, 4, 0, GL_RGB, GL_FLOAT, noiseTextureData);
+		}
+
+		// Lighting info
+		Vector3fc lightPos = new Vector3f(2, 4, -2);
+		Vector3fc lightColor = new Vector3f(0.2f, 0.2f, 0.7f);
 
 		// Shader configuration
 		shaderLightingPass.use();
 		shaderLightingPass.setInt("gPosition", 0);
 		shaderLightingPass.setInt("gNormal", 1);
-		shaderLightingPass.setInt("gAlbedoSpec", 2);
-
-		final float constant = 1.0f;
-		final float linear = 0.7f;
-		final float quadratic = 1.8f;
-		final float quadratic2 = 2 * quadratic;
-
-		// Use a function object to have a cleaner code afterwards
-		final Function<Float, Float> numEquation = (maxBrightness) -> {
-			return -linear + (float)Math.sqrt(linear * linear - 4 * quadratic * 
-					(constant - (256.0f / 5.0f) * maxBrightness));
-		};
-
-		// Send light relevant uniforms
-		for(int i = 0;i < lightPositions.length;i++) {
-			shaderLightingPass.setVec3("lights["+i+"].Position", lightPositions[i]);
-			shaderLightingPass.setVec3("lights["+i+"].Color", lightColors[i]);
-			// Note that we don't send this to the shader, we assume it is always 1.0 (in our case)
-			// shaderLightingPass.setFloat("lights["+i+"].Constant", 1.0f);
-			shaderLightingPass.setFloat("lights["+i+"].Linear", linear);
-			shaderLightingPass.setFloat("lights["+i+"].Quadratic", quadratic);
-			// Then calculate radius of light volume/sphere
-			final float maxBrightness = lightColors[i].maxComponent();
-			final float radius = numEquation.apply(maxBrightness) / quadratic2;
-			shaderLightingPass.setFloat("lights["+i+"].Radius", radius);
+		shaderLightingPass.setInt("gAlbedo", 2);
+		shaderLightingPass.setInt("ssao", 3);
+		shaderSSAO.use();
+		shaderSSAO.setInt("gPosition", 0);
+		shaderSSAO.setInt("gNormal", 1);
+		shaderSSAO.setInt("texNoise", 2);
+		// Send kernel + rotation 
+		for (int i = 0; i < ssaoKernel.length; ++i) {
+			shaderSSAO.setVec3("samples[" + i + "]", ssaoKernel[i]);
 		}
+		shaderSSAOBlur.use();
+		shaderSSAOBlur.setInt("ssaoInput", 0);
+
 
 		// Pass projection matrix to shader (as projection matrix rarely changes there's no need to do this per frame)
 		// ** This is true as long as you don't change the window size!
@@ -343,57 +369,78 @@ public class DeferredShadingVolumes {
 
 			if(updateProjection) {
 				projection.setPerspective((float)Math.toRadians(camera.zoom), (float)windowWidth / (float)windowHeight, 
-						0.1f, 100.0f);
+						0.1f, 50.0f);
 				updateProjection = false;
 			}
 			final Matrix4f view = camera.getViewMatrix();
+			
+	        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			// 1. Geometry pass: render scene's geometry/color data into the GBuffer
 			glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			shaderGeometryPass.use();
 			shaderGeometryPass.setMat4("projection", projection);
 			shaderGeometryPass.setMat4("view", view);
-			for(int i = 0;i < objectPositions.length;i++) {
-				model.translation(objectPositions[i]);
-				model.scale(0.25f);
-				shaderGeometryPass.setMat4("model", model);
-				nanosuit.draw(shaderGeometryPass);
-			}
+			// Room cube
+			model.translation(0, 7, 0);
+			model.scale(7.5f, 7.5f, 7.5f);
+			shaderGeometryPass.setMat4("model", model);
+			// Invert normals as we're inside the cube
+			shaderGeometryPass.setBool("invertedNormals", true);
+			renderCube(cubeVAO);
+			shaderGeometryPass.setBool("invertedNormals", false);
+			// Nanosuit on the floor
+			model.translation(0, 0, 5);
+			model.rotate((float)Math.toRadians(-90.0f), 1, 0, 0);
+			model.scale(0.5f);
+			shaderGeometryPass.setMat4("model", model);
+			nanosuit.draw(shaderGeometryPass);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			// 2. Lighting pass: calculate lighting by iterating over a screen filled quad pixel-by-pixel using the GBuffer's content
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			shaderLightingPass.use();
+			// 2. Generate SSAO texture
+			glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+			glClear(GL_COLOR_BUFFER_BIT);
+			shaderSSAO.use();
+			shaderSSAO.setMat4("projection", projection);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, gPosition);
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, gNormal);
 			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
-			shaderLightingPass.setVec3("viewPos", camera.position);
-			// Finally render quad
+			glBindTexture(GL_TEXTURE_2D, noiseTexture);
 			renderQuad(quadVAO);
 
-			// 2.5. Copy content of geometry's depth buffer to default framebuffer's depth buffer
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBlitFramebuffer(0, 0, windowWidth, windowHeight, 0, 0, windowWidth, windowHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			// 3. Blur SSAO texture to remove noise
+			glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+			glClear(GL_COLOR_BUFFER_BIT);
+			shaderSSAOBlur.use();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+			renderQuad(quadVAO);
 
-			// 3. Render lights on top of scene
-			shaderLightBox.use();
-			shaderLightBox.setMat4("projection", projection);
-			shaderLightBox.setMat4("view", view);
-			for(int i = 0;i < lightPositions.length;i++) {
-				model.translation(lightPositions[i]);
-				model.scale(0.125f);
-				shaderLightBox.setMat4("model", model);
-				shaderLightBox.setVec3("lightColor", lightColors[i]);
-				renderCube(cubeVAO);
-			}
+			// 4. Lighting pass: traditional deferred Blinn-Phong lighting with added screen-space ambient occlusion
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			shaderLightingPass.use();
+			// Send light relevant uniforms
+			Vector3f lightPosView = view.transformPosition(lightPos, new Vector3f());
+			shaderLightingPass.setVec3("light.Position", lightPosView);
+			shaderLightingPass.setVec3("light.Color", lightColor);
+			// Update attenuation parameters
+			final float linear = 0.09f;
+			final float quadratic = 0.032f;
+			shaderLightingPass.setFloat("light.Linear", linear);
+			shaderLightingPass.setFloat("light.Quadratic", quadratic);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, gPosition);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, gNormal);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, gAlbedo);
+			glActiveTexture(GL_TEXTURE3); // Add extra SSAO texture to lighting pass
+			glBindTexture(GL_TEXTURE_2D, ssaoColorBufferBlur);
+			renderQuad(quadVAO);
 
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
@@ -408,17 +455,26 @@ public class DeferredShadingVolumes {
 		glDeleteBuffers(quadVAO);
 		glDeleteTextures(gPosition);
 		glDeleteTextures(gNormal);
-		glDeleteTextures(gAlbedoSpec);
+		glDeleteTextures(gAlbedo);
+		glDeleteTextures(ssaoColorBuffer);
+		glDeleteTextures(ssaoColorBufferBlur);
 		glDeleteRenderbuffers(rboDepth);
 		shaderGeometryPass.delete();
-		shaderLightBox.delete();
+		shaderSSAO.delete();
+		shaderSSAOBlur.delete();
 		shaderLightingPass.delete();
 		glDeleteFramebuffers(gBuffer);
+		glDeleteFramebuffers(ssaoFBO);
+		glDeleteFramebuffers(ssaoBlurFBO);
 		nanosuit.delete();
 
 		// Clear all allocated resources by GLFW
 		glfwTerminate();
 
+	}
+
+	private static float lerp(float a, float b, float f) {
+		return a + f * (b - a);
 	}
 
 	private static void renderQuad(int quadVAO) {
@@ -547,7 +603,7 @@ public class DeferredShadingVolumes {
 		if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
 			camera.processKeyboard(CameraMovement.RIGHT, deltaTime);
 		}
-		
+
 		camera.movementSpeed = speed;
 
 	}

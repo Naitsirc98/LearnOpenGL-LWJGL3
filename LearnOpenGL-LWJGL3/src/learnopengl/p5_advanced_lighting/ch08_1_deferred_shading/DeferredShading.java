@@ -54,11 +54,6 @@ public class DeferredShading {
 	private static float deltaTime = 0.0f; // Time between current frame and last frame
 	private static float lastFrame = 0.0f;
 
-	// HDR
-	private static boolean bloom = true;
-	private static boolean bloomKeyPressed = false;
-	private static float exposure = 1.0f;
-
 	// Vertex Data
 	private static final float[] CUBE_VERTICES = {
 			// back face
@@ -534,27 +529,6 @@ public class DeferredShading {
 
 		if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
 			camera.processKeyboard(CameraMovement.RIGHT, deltaTime);
-		}
-
-		if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !bloomKeyPressed) {
-			bloom = !bloom;
-			bloomKeyPressed = true;
-
-		}else if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE) {
-			bloomKeyPressed = false;
-		}
-
-		if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-			if(exposure > 0.0f) {
-				// exposure -= 0.001f;
-				exposure -= 0.01f;
-			} else {
-				exposure = 0.0f;
-			}
-
-		} else if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-			// exposure += 0.001f;
-			exposure += 0.01f;
 		}
 
 		camera.movementSpeed = speed;
