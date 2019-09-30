@@ -40,7 +40,7 @@ public class PBRLighting {
 	// Camera
 	private static Camera camera = new Camera();
 	static {
-		camera.position.z = 5.0f;
+		camera.position.z = 3.0f;
 	}
 	private static float lastX = (float)windowWidth / 2.0f;
 	private static float lastY = (float)windowHeight / 2.0f;

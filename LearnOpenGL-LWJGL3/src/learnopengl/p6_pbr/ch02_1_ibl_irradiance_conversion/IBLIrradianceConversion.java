@@ -1,8 +1,11 @@
-package learnopengl.p6_pbr.ch01_2_lighting_textured;
+package learnopengl.p6_pbr.ch02_1_ibl_irradiance_conversion;
 
 import static java.lang.Math.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.*;
+import static org.lwjgl.opengl.GL13.*;
+import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL21.*;
@@ -16,6 +19,7 @@ import java.nio.IntBuffer;
 import java.util.logging.Logger;
 
 import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.lwjgl.glfw.GLFWCursorPosCallbackI;
@@ -31,7 +35,7 @@ import learnopengl.util.Camera;
 import learnopengl.util.Camera.CameraMovement;
 import learnopengl.util.Shader;
 
-public class PBRLightingTextured {
+public class IBLIrradianceConversion {
 
 	private static Logger logger = Logger.getAnonymousLogger();
 
@@ -53,6 +57,53 @@ public class PBRLightingTextured {
 	// Timing
 	private static float deltaTime = 0.0f; // Time between current frame and last frame
 	private static float lastFrame = 0.0f;
+	
+	// Vertex Data
+	private static final float[] CUBE_VERTICES = {
+			// back face
+			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+			1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+			1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+			1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+			-1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+			// front face
+			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+			1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+			1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+			1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+			-1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+			// left face
+			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+			-1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+			-1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+			// right face
+			1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+			1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+			1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+			1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+			1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+			1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+			// bottom face
+			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+			1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+			1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+			1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+			-1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+			// top face
+			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+			1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+			1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+			1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+			-1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f // bottom-left        
+	};
+
 
 	// ============== Callbacks ==============
 
@@ -129,24 +180,20 @@ public class PBRLightingTextured {
 
 		// Configure global OpenGL state
 		glEnable(GL_DEPTH_TEST);
+		// Set depth function to less than AND equal for skybox depth trick
+		glDepthFunc(GL_LEQUAL);
 
 		// Build and compile our shader program
-		final String dir = PBRLightingTextured.class.getResource(".").getFile();
-		Shader shader = new Shader(dir+"pbr.vs", dir+"pbr.fs");
+		final String dir = IBLIrradianceConversion.class.getResource(".").getFile();
+		Shader pbrShader = new Shader(dir+"pbr.vs", dir+"pbr.fs");
+		Shader backgroundShader = new Shader(dir+"background.vs", dir+"background.fs");
 
-		shader.use();
-		shader.setInt("albedoMap", 0);
-		shader.setInt("normalMap", 1);
-		shader.setInt("metallicMap", 2);
-		shader.setInt("roughnessMap", 3);
-		shader.setInt("aoMap", 4);
+		pbrShader.use();
+		pbrShader.setVec3("albedo", 0.5f, 0.0f, 0.0f);
+		pbrShader.setFloat("ao", 1.0f);
 
-		// Load PBR material textures
-		final int albedo    = loadTexture("resources/textures/pbr/rusted_iron/albedo.png", false);
-		final int normal    = loadTexture("resources/textures/pbr/rusted_iron/normal.png", false);
-		final int metallic  = loadTexture("resources/textures/pbr/rusted_iron/metallic.png", false);
-		final int roughness = loadTexture("resources/textures/pbr/rusted_iron/roughness.png", false);
-		final int ao        = loadTexture("resources/textures/pbr/rusted_iron/ao.png", false);
+		backgroundShader.use();
+		backgroundShader.setInt("environmentMap", 0);
 
 		// Sphere
 		final int sphereVAO = glGenVertexArrays();
@@ -156,14 +203,27 @@ public class PBRLightingTextured {
 
 		// Lights
 		Vector3fc[] lightPositions = {
-				new Vector3f(0, 0, 10.0f),
+				new Vector3f(-10.0f,  10.0f, 10.0f),
+				new Vector3f( 10.0f,  10.0f, 10.0f),
+				new Vector3f(-10.0f, -10.0f, 10.0f),
+				new Vector3f( 10.0f, -10.0f, 10.0f)
 		};
 
-		Vector3fc lightColor = new Vector3f(150.0f);
+		Vector3fc lightColor = new Vector3f(300.0f);
 
 		final int nRows = 7;
 		final int nColumns = 7;
 		final float spacing = 2.5f;
+		
+		// Create Cube
+		final int cubeVAO = glGenVertexArrays();
+		final int cubeVBO = glGenBuffers();
+		setUpVertexData(cubeVAO, cubeVBO, CUBE_VERTICES);
+
+		final int environmentMap = createEnvironmentMap(cubeVAO);
+		
+		// Configure the viewport to the original framebuffer's screen dimensions before rendering
+		 glViewport(0, 0, windowWidth, windowHeight);
 
 		// Pass projection matrix to shader (as projection matrix rarely changes there's no need to do this per frame)
 		// ** This is true as long as you don't change the window size!
@@ -194,38 +254,27 @@ public class PBRLightingTextured {
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			shader.use();
-			shader.setMat4("view", view);
-			shader.setMat4("projection", projection);
-			shader.setVec3("camPos", camera.position);
-
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, albedo);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, normal);
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, metallic);
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, roughness);
-			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_2D, ao);
+			pbrShader.use();
+			pbrShader.setMat4("projection", projection);
+			pbrShader.setMat4("view", view);
+			pbrShader.setVec3("camPos", camera.position);
 
 			// Render rows * columns number of spheres with varying matallic/roughness values scaled by rows and columns respectively
 			for(int row = 0;row < nRows;row++) {
 
-				shader.setFloat("metallic", (float)row/(float)nRows);
+				pbrShader.setFloat("metallic", (float)row/(float)nRows);
 
 				for(int col = 0;col < nColumns;col++) {
 
 					// We clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
 					// on direct lighting.
-					shader.setFloat("roughness", min(max((float)col/(float)nColumns, 0.025f), 1.0f));
+					pbrShader.setFloat("roughness", min(max((float)col/(float)nColumns, 0.05f), 1.0f));
 
 					model.translation(
 							(col - (nColumns / 2)) * spacing, 
 							(row - (nRows / 2)) * spacing, 
 							0.0f);
-					shader.setMat4("model", model);
+					pbrShader.setMat4("model", model);
 
 					renderSphere(sphereVAO, indicesCount);
 				}
@@ -240,14 +289,22 @@ public class PBRLightingTextured {
 				// Vector3f newPos = lightPositions[i].add((float)sin(glfwGetTime()*5)*5, 0, 0, new Vector3f());
 				Vector3fc newPos = lightPositions[i];
 
-				shader.setVec3("lightPositions[" + i + "]", newPos);
-				shader.setVec3("lightColors["+i+"]", lightColor);
+				pbrShader.setVec3("lightPositions[" + i + "]", newPos);
+				pbrShader.setVec3("lightColors["+i+"]", lightColor);
 
 				model.translation(newPos);
 				model.scale(0.5f);
-				shader.setMat4("model", model);
+				pbrShader.setMat4("model", model);
 				renderSphere(sphereVAO, indicesCount);
 			}
+			
+	        // Render skybox (render as last to prevent overdraw)
+	        backgroundShader.use();
+	        backgroundShader.setMat4("projection", projection);
+	        backgroundShader.setMat4("view", view);
+	        glActiveTexture(GL_TEXTURE0);
+	        glBindTexture(GL_TEXTURE_CUBE_MAP, environmentMap);
+	        renderCube(cubeVAO);
 
 			// Swap buffers and poll IO events (key/mouse events)
 			glfwSwapBuffers(window);
@@ -257,19 +314,164 @@ public class PBRLightingTextured {
 
 		// Deallocate all resources when no longer necessary
 		glDeleteVertexArrays(sphereVAO);
-		glDeleteBuffers(sphereVBO);
+		glDeleteVertexArrays(cubeVAO);
+		glDeleteBuffers(cubeVBO);
 		glDeleteBuffers(sphereVBO);
 		glDeleteBuffers(sphereEBO);
-		glDeleteTextures(albedo);
-		glDeleteTextures(normal);
-		glDeleteTextures(metallic);
-		glDeleteTextures(roughness);
-		glDeleteTextures(ao);
-		shader.delete();
+		glDeleteTextures(environmentMap);
+		pbrShader.delete();
+		backgroundShader.delete();
 
 		// Clear all allocated resources by GLFW
 		glfwTerminate();
 
+	}
+
+	private static int createEnvironmentMap(int cubeVAO) {
+		
+		final String dir = IBLIrradianceConversion.class.getResource(".").getFile();
+		final Shader equirectToCubemapShader = new Shader(dir+"cubemap.vs", dir+"equirectangular_to_cubemap.fs");
+
+		final int captureFBO = glGenFramebuffers();
+		final int captureRBO = glGenRenderbuffers();
+		setUpCaptureFramebuffer(captureFBO, captureRBO);
+
+		final int hdrTexture = loadHDRTexture("resources/textures/hdr/newport_loft.hdr");
+
+		final int environmentMap = createEnvironmentCubemap(hdrTexture);
+
+		bakeEnvironmentalMap(environmentMap, hdrTexture, captureFBO, equirectToCubemapShader, cubeVAO);
+
+		equirectToCubemapShader.delete();
+		glDeleteFramebuffers(captureFBO);
+		glDeleteRenderbuffers(captureRBO);
+		glDeleteTextures(hdrTexture);
+		
+		return environmentMap;
+	}
+
+	private static void bakeEnvironmentalMap(int environmentMap, int hdrTexture, int captureFBO, Shader shader, int cubeVAO) {
+
+		// Set up projection and view matrices for capturing data onto the 6 cubemap face directions
+		final Matrix4fc captureProj = new Matrix4f().perspective((float)Math.toRadians(90), 1.0f, 0.1f, 10.0f);
+
+		final Matrix4fc[] captureViews = {
+				new Matrix4f().lookAt(0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
+				new Matrix4f().lookAt(0.0f, 0.0f, 0.0f,-1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
+				new Matrix4f().lookAt(0.0f, 0.0f, 0.0f, 0.0f,  1.0f,  0.0f, 0.0f,  0.0f,  1.0f),
+				new Matrix4f().lookAt(0.0f, 0.0f, 0.0f, 0.0f, -1.0f,  0.0f, 0.0f,  0.0f, -1.0f),
+				new Matrix4f().lookAt(0.0f, 0.0f, 0.0f, 0.0f,  0.0f,  1.0f, 0.0f, -1.0f,  0.0f),
+				new Matrix4f().lookAt(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,  0.0f, -1.0f, 0.0f)
+		};
+
+		// Convert HDR equirectangular environment map to cubemap equivalent
+		shader.use();
+		shader.setInt("equirectangularMap", 0);
+		shader.setMat4("projection", captureProj);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, hdrTexture);
+
+		glViewport(0, 0, 512, 512); // Don't forget to configure the viewport to the capture dimensions.
+		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+		for(int i = 0;i < 6;i++)
+		{
+			shader.setMat4("view", captureViews[i]);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environmentMap, 0);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			renderCube(cubeVAO);
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	}
+	
+	private static void renderCube(int cubeVAO) {
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+	}
+
+	private static void setUpVertexData(int vao, int vbo, float[] vertexData) {
+		// Bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+		glBindVertexArray(vao);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, vertexData, GL_STATIC_DRAW);
+
+		// Position
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 8 * Float.BYTES, 0L);
+		glEnableVertexAttribArray(0);
+		// Normal
+		glVertexAttribPointer(1, 3, GL_FLOAT, false, 8 * Float.BYTES, 3 * Float.BYTES);
+		glEnableVertexAttribArray(1);
+		// Texture coords
+		glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * Float.BYTES, 6 * Float.BYTES);
+		glEnableVertexAttribArray(2);
+
+		// Note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+		glBindBuffer(GL_ARRAY_BUFFER, 0); 
+
+		// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+		glBindVertexArray(0); 
+	}
+
+	private static int createEnvironmentCubemap(int hdrTexture) {
+
+		final int envCubemap = glGenTextures();
+
+		glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+		for(int i = 0;i < 6;i++){
+			nglTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, NULL);
+		}
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		return envCubemap;
+	}
+
+	private static int loadHDRTexture(String filename) {
+
+		final int texture = glGenTextures();
+
+		try(MemoryStack stack = MemoryStack.stackPush()) {
+
+			IntBuffer width = stack.mallocInt(1);
+			IntBuffer height = stack.mallocInt(1);
+			IntBuffer channels = stack.mallocInt(1);
+
+			stbi_set_flip_vertically_on_load(true);
+			
+			FloatBuffer data = stbi_loadf(filename, width, height, channels, 0);
+
+			if(data == null) {
+				throw new RuntimeException("Could not load image: " + filename);
+			}
+
+			glBindTexture(GL_TEXTURE_2D, texture);
+			// Note how we specify the texture's data value to be float
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width.get(0), height.get(0), 0, GL_RGB, GL_FLOAT, data); 
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			stbi_image_free(data);
+		}
+
+		return texture;
+	}
+
+	private static void setUpCaptureFramebuffer(int captureFBO, int captureRBO) {
+		glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
 	}
 
 	private static int createSphere(int sphereVAO, int sphereVBO, int sphereEBO) {
